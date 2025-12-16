@@ -13,6 +13,7 @@ void main() async {
   ]);
 
   // Khởi tạo Firebase với error handling
+  bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -24,16 +25,20 @@ void main() async {
         storageBucket: 'system-d-arrosage.appspot.com',
       ),
     );
-    print('Firebase initialized successfully');
+    firebaseInitialized = true;
+    debugPrint('Firebase initialized successfully');
   } catch (e) {
-    print('Firebase initialization error: $e');
+    debugPrint('Firebase initialization error: $e');
+    // Không throw exception để app vẫn có thể chạy
   }
 
-  runApp(const MyApp());
+  runApp(MyApp(firebaseInitialized: firebaseInitialized));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final bool firebaseInitialized;
+
+  const MyApp({Key? key, required this.firebaseInitialized}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +54,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: WelcomePage(),
+      home: const WelcomePage(),
     );
   }
 }

@@ -14,6 +14,7 @@ class Bilanpage extends StatefulWidget {
 
 class _BilanpageState extends State<Bilanpage> {
   final DatabaseReference ref = FirebaseDatabase.instance.ref('Data');
+  final int _maxDataPoints = 100; // Giới hạn 100 điểm để tối ưu performance
 
   String? data;
   Map<String, dynamic>? convertedData;
@@ -30,6 +31,7 @@ class _BilanpageState extends State<Bilanpage> {
 
   void _listenToData() {
     _subscription?.cancel();
+    _subscription = null;
 
     _subscription = ref.onValue.listen(
       (event) {
@@ -56,7 +58,7 @@ class _BilanpageState extends State<Bilanpage> {
             }
           } catch (e) {
             errorMessage = 'Erreur de traitement: $e';
-            print('Error listening to data: $e');
+            debugPrint('Error listening to data: $e');
           }
           isLoading = false;
         });
@@ -115,8 +117,14 @@ class _BilanpageState extends State<Bilanpage> {
 
       // Sort by time
       chartData.sort((a, b) => a.time.compareTo(b.time));
+
+      // Giới hạn số lượng điểm hiển thị để tối ưu performance
+      if (chartData.length > _maxDataPoints) {
+        // Lấy _maxDataPoints điểm cuối cùng (mới nhất)
+        chartData = chartData.sublist(chartData.length - _maxDataPoints);
+      }
     } catch (e) {
-      print('Error processing chart data: $e');
+      debugPrint('Error processing chart data: $e');
       errorMessage = 'Erreur de traitement des données graphiques';
     }
   }
@@ -130,6 +138,8 @@ class _BilanpageState extends State<Bilanpage> {
   }
 
   void _refreshData() {
+    if (!mounted) return;
+
     setState(() {
       isLoading = true;
       errorMessage = '';
@@ -154,7 +164,9 @@ class _BilanpageState extends State<Bilanpage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_outlined),
             color: Colors.white,
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (mounted) Navigator.pop(context);
+            },
           ),
           actions: [
             IconButton(
@@ -407,6 +419,7 @@ class _BilanpageState extends State<Bilanpage> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _subscription = null;
     super.dispose();
   }
 }

@@ -27,7 +27,7 @@ class _LoginpageState extends State<Loginpage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           '       Email',
           style: TextStyle(
             color: Colors.black,
@@ -35,14 +35,14 @@ class _LoginpageState extends State<Loginpage> {
             fontFamily: 'SpaceGrotesk',
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Container(
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Color(0xFFE5E4D8),
+            color: const Color(0xFFE5E4D8),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 6,
@@ -54,8 +54,8 @@ class _LoginpageState extends State<Loginpage> {
           child: TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: TextStyle(color: Colors.black87),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
@@ -72,7 +72,7 @@ class _LoginpageState extends State<Loginpage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           '       Mot de passe',
           style: TextStyle(
             color: Colors.black,
@@ -80,14 +80,14 @@ class _LoginpageState extends State<Loginpage> {
             fontFamily: 'SpaceGrotesk',
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Container(
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Color(0xFFE5E4D8),
+            color: const Color(0xFFE5E4D8),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 6,
@@ -99,8 +99,8 @@ class _LoginpageState extends State<Loginpage> {
           child: TextField(
             controller: _passwordController,
             obscureText: true,
-            style: TextStyle(color: Colors.black87),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.lock_outline, color: Colors.black),
@@ -118,12 +118,14 @@ class _LoginpageState extends State<Loginpage> {
       alignment: Alignment.centerLeft,
       child: TextButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ResetPassword()),
-          );
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ResetPassword()),
+            );
+          }
         },
-        child: Text(
+        child: const Text(
           '     Mot de passe oublié ? ',
           style: TextStyle(
             color: Color(0xFF00C1C4),
@@ -136,20 +138,20 @@ class _LoginpageState extends State<Loginpage> {
 
   Widget LoginButton() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 25),
+      padding: const EdgeInsets.symmetric(vertical: 25),
       width: 164,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFFBD7D5A),
-          padding: EdgeInsets.all(15),
+          backgroundColor: const Color(0xFFBD7D5A),
+          padding: const EdgeInsets.all(15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 5,
         ),
         child: _isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
@@ -157,7 +159,7 @@ class _LoginpageState extends State<Loginpage> {
                   strokeWidth: 2,
                 ),
               )
-            : Text(
+            : const Text(
                 'Connexion',
                 style: TextStyle(
                   color: Color(0xFFF4F3E9),
@@ -171,6 +173,8 @@ class _LoginpageState extends State<Loginpage> {
   }
 
   Future<void> _handleLogin() async {
+    if (!mounted) return;
+
     // Validation des champs
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
@@ -185,6 +189,7 @@ class _LoginpageState extends State<Loginpage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -196,10 +201,12 @@ class _LoginpageState extends State<Loginpage> {
       if (userCredential.user != null && mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Bilanpage()),
+          MaterialPageRoute(builder: (context) => const Bilanpage()),
         );
       }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
       String message = 'Une erreur est survenue';
 
       switch (e.code) {
@@ -221,12 +228,16 @@ class _LoginpageState extends State<Loginpage> {
         case 'network-request-failed':
           message = 'Erreur réseau. Vérifiez votre connexion';
           break;
+        case 'invalid-credential':
+          message = 'Email ou mot de passe incorrect';
+          break;
         default:
           message = 'Erreur d\'authentification: ${e.message}';
       }
 
       _showErrorDialog(message);
     } catch (e) {
+      if (!mounted) return;
       _showErrorDialog('Erreur de connexion: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -234,6 +245,8 @@ class _LoginpageState extends State<Loginpage> {
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -242,19 +255,19 @@ class _LoginpageState extends State<Loginpage> {
         ),
         title: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+            const Icon(Icons.error_outline, color: Colors.red),
+            const SizedBox(width: 8),
+            const Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
           ],
         ),
         content: Text(
           message,
-          style: TextStyle(fontFamily: 'SpaceGrotesk'),
+          style: const TextStyle(fontFamily: 'SpaceGrotesk'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               'OK',
               style: TextStyle(
                 color: Color(0xFF00C1C4),
@@ -271,13 +284,13 @@ class _LoginpageState extends State<Loginpage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF4F3E9),
+      backgroundColor: const Color(0xFFF4F3E9),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               height: 180,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 1.png'),
                   fit: BoxFit.fitWidth,
@@ -285,8 +298,8 @@ class _LoginpageState extends State<Loginpage> {
               ),
             ),
             Container(
-              margin: EdgeInsets.only(top: 10, right: 50, left: 50),
-              child: Center(
+              margin: const EdgeInsets.only(top: 10, right: 50, left: 50),
+              child: const Center(
                 child: Text(
                   "Pi-Vert",
                   style: TextStyle(
@@ -298,15 +311,15 @@ class _LoginpageState extends State<Loginpage> {
                 ),
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
             buildEmail(),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             buildPassword(),
             ForgetPassword(),
             LoginButton(),
             Container(
               height: 155,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 2.png'),
                   fit: BoxFit.fitWidth,

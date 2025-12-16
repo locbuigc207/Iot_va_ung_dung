@@ -10,6 +10,8 @@ class Login_screen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<Login_screen> {
+  bool _errorLoadingGirl = false;
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
@@ -30,49 +32,89 @@ class _LoginScreenState extends State<Login_screen> {
               ),
             ),
 
-            // Girl image
-            Container(
-              height: 445,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: const AssetImage('Assets/Girl.png'),
-                  fit: BoxFit.contain,
-                  onError: (error, stackTrace) {
-                    print('Error loading Girl.png: $error');
-                  },
-                ),
+            // Girl image with error handling
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 445,
+                child: _errorLoadingGirl
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.account_circle,
+                              size: 150,
+                              color: Color(0xFF084C61).withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Pi-Vert',
+                              style: TextStyle(
+                                color: Color(0xFF084C61),
+                                fontFamily: 'VeronaSerial',
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Image.asset(
+                        'Assets/Girl.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          debugPrint('Error loading Girl.png: $error');
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              setState(() {
+                                _errorLoadingGirl = true;
+                              });
+                            }
+                          });
+                          return const SizedBox.shrink();
+                        },
+                      ),
               ),
             ),
 
             // App name
-            const Positioned(
+            Positioned(
               top: 365,
-              left: 140,
-              child: Text(
-                'Pi-Vert',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  decoration: TextDecoration.none,
-                  color: Color(0xFF084C61),
-                  fontFamily: 'VeronaSerial',
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  'Pi-Vert',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    decoration: TextDecoration.none,
+                    color: const Color(0xFF084C61),
+                    fontFamily: 'VeronaSerial',
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
 
             // Tagline
-            const Positioned(
+            Positioned(
               top: 415,
-              left: 100,
-              child: Text(
-                'Rendez vos plantes fières',
-                style: TextStyle(
-                  decoration: TextDecoration.none,
-                  color: Color(0xFF084C61),
-                  fontFamily: 'SpaceGrotesk',
-                  fontSize: 18,
-                  fontWeight: FontWeight.normal,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  'Rendez vos plantes fières',
+                  style: TextStyle(
+                    decoration: TextDecoration.none,
+                    color: const Color(0xFF084C61),
+                    fontFamily: 'SpaceGrotesk',
+                    fontSize: 18,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
               ),
             ),
@@ -80,30 +122,40 @@ class _LoginScreenState extends State<Login_screen> {
             // Login button
             Positioned(
               top: 470,
-              left: 130,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Loginpage()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C1C4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Connexion',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFF4F3E9),
-                    fontFamily: 'SpaceGrotesk',
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const Loginpage()),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00C1C4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 5,
+                    ),
+                    child: const Text(
+                      'Connexion',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFF4F3E9),
+                        fontFamily: 'SpaceGrotesk',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -112,31 +164,40 @@ class _LoginScreenState extends State<Login_screen> {
             // Sign up button
             Positioned(
               top: 535,
-              left: 130,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const Sign_up_page()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFBD7D5A),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Inscription',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFF4F3E9),
-                    fontFamily: 'SpaceGrotesk',
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const Sign_up_page()),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFBD7D5A),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 5,
+                    ),
+                    child: const Text(
+                      'Inscription',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFF4F3E9),
+                        fontFamily: 'SpaceGrotesk',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -23,7 +23,7 @@ class _ResetPasswordState extends State<ResetPassword> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           '       Email',
           style: TextStyle(
             color: Colors.black,
@@ -31,14 +31,14 @@ class _ResetPasswordState extends State<ResetPassword> {
             fontFamily: 'SpaceGrotesk',
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Container(
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Color(0xFFE5E4D8),
+            color: const Color(0xFFE5E4D8),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 6,
@@ -50,8 +50,8 @@ class _ResetPasswordState extends State<ResetPassword> {
           child: TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: TextStyle(color: Colors.black87),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
@@ -66,20 +66,20 @@ class _ResetPasswordState extends State<ResetPassword> {
 
   Widget ResetButton() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       width: 200,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleReset,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFFBD7D5A),
-          padding: EdgeInsets.all(13),
+          backgroundColor: const Color(0xFFBD7D5A),
+          padding: const EdgeInsets.all(13),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 5,
         ),
         child: _isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
@@ -87,7 +87,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                   strokeWidth: 2,
                 ),
               )
-            : Text(
+            : const Text(
                 'Réinitialiser',
                 style: TextStyle(
                   color: Color(0xFFF4F3E9),
@@ -101,6 +101,8 @@ class _ResetPasswordState extends State<ResetPassword> {
   }
 
   Future<void> _handleReset() async {
+    if (!mounted) return;
+
     // Validation
     if (_emailController.text.trim().isEmpty) {
       _showDialog('Erreur', 'Veuillez entrer votre email', isError: true);
@@ -114,6 +116,7 @@ class _ResetPasswordState extends State<ResetPassword> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -125,12 +128,16 @@ class _ResetPasswordState extends State<ResetPassword> {
           'Un email de réinitialisation a été envoyé à ${_emailController.text.trim()}',
           isError: false,
           onOk: () {
-            Navigator.pop(context); // Fermer le dialog
-            Navigator.pop(context); // Retourner à la page précédente
+            if (mounted) {
+              Navigator.pop(context); // Fermer le dialog
+              Navigator.pop(context); // Retourner à la page précédente
+            }
           },
         );
       }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
       String message = 'Une erreur est survenue';
 
       switch (e.code) {
@@ -155,6 +162,7 @@ class _ResetPasswordState extends State<ResetPassword> {
 
       _showDialog('Erreur', message, isError: true);
     } catch (e) {
+      if (!mounted) return;
       _showDialog('Erreur', 'Erreur: ${e.toString()}', isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -163,6 +171,8 @@ class _ResetPasswordState extends State<ResetPassword> {
 
   void _showDialog(String title, String message,
       {bool isError = false, VoidCallback? onOk}) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -175,13 +185,13 @@ class _ResetPasswordState extends State<ResetPassword> {
               isError ? Icons.error_outline : Icons.check_circle,
               color: isError ? Colors.red : Colors.green,
             ),
-            SizedBox(width: 8),
-            Text(title, style: TextStyle(fontFamily: 'SpaceGrotesk')),
+            const SizedBox(width: 8),
+            Text(title, style: const TextStyle(fontFamily: 'SpaceGrotesk')),
           ],
         ),
         content: Text(
           message,
-          style: TextStyle(fontFamily: 'SpaceGrotesk'),
+          style: const TextStyle(fontFamily: 'SpaceGrotesk'),
         ),
         actions: [
           TextButton(
@@ -189,7 +199,7 @@ class _ResetPasswordState extends State<ResetPassword> {
               Navigator.pop(context);
               if (onOk != null) onOk();
             },
-            child: Text(
+            child: const Text(
               'OK',
               style: TextStyle(
                 color: Color(0xFF00C1C4),
@@ -206,13 +216,13 @@ class _ResetPasswordState extends State<ResetPassword> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF4F3E9),
+      backgroundColor: const Color(0xFFF4F3E9),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               height: 180,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 1.png'),
                   fit: BoxFit.fitWidth,
@@ -220,8 +230,8 @@ class _ResetPasswordState extends State<ResetPassword> {
               ),
             ),
             Container(
-              margin: EdgeInsets.only(top: 10, right: 50, left: 50),
-              child: Center(
+              margin: const EdgeInsets.only(top: 10, right: 50, left: 50),
+              child: const Center(
                 child: Text(
                   "Pi-Vert",
                   style: TextStyle(
@@ -233,8 +243,8 @@ class _ResetPasswordState extends State<ResetPassword> {
                 ),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'Réinitialiser le mot de passe',
               style: TextStyle(
                 color: Color(0xFF084C61),
@@ -243,8 +253,8 @@ class _ResetPasswordState extends State<ResetPassword> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 10),
-            Padding(
+            const SizedBox(height: 10),
+            const Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
                 'Entrez votre email pour recevoir un lien de réinitialisation',
@@ -256,13 +266,15 @@ class _ResetPasswordState extends State<ResetPassword> {
                 ),
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             buildEmail(),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             ResetButton(),
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
+              onPressed: () {
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text(
                 'Retour à la connexion',
                 style: TextStyle(
                   color: Color(0xFF00C1C4),
@@ -273,7 +285,7 @@ class _ResetPasswordState extends State<ResetPassword> {
             ),
             Container(
               height: 250,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 2.png'),
                   fit: BoxFit.fitWidth,

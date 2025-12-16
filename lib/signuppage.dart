@@ -28,7 +28,7 @@ class _SignUpPageState extends State<Sign_up_page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           '       Nom d\'utilisateur',
           style: TextStyle(
             color: Colors.black,
@@ -36,14 +36,14 @@ class _SignUpPageState extends State<Sign_up_page> {
             fontFamily: 'SpaceGrotesk',
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Container(
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Color(0xFFE5E4D8),
+            color: const Color(0xFFE5E4D8),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 6,
@@ -55,8 +55,8 @@ class _SignUpPageState extends State<Sign_up_page> {
           child: TextField(
             controller: _usernameController,
             keyboardType: TextInputType.name,
-            style: TextStyle(color: Colors.black87),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.person, color: Colors.black),
@@ -73,7 +73,7 @@ class _SignUpPageState extends State<Sign_up_page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           '       Email',
           style: TextStyle(
             color: Colors.black,
@@ -81,14 +81,14 @@ class _SignUpPageState extends State<Sign_up_page> {
             fontFamily: 'SpaceGrotesk',
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Container(
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Color(0xFFE5E4D8),
+            color: const Color(0xFFE5E4D8),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 6,
@@ -100,8 +100,8 @@ class _SignUpPageState extends State<Sign_up_page> {
           child: TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: TextStyle(color: Colors.black87),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
@@ -118,7 +118,7 @@ class _SignUpPageState extends State<Sign_up_page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           '       Mot de passe',
           style: TextStyle(
             color: Colors.black,
@@ -126,14 +126,14 @@ class _SignUpPageState extends State<Sign_up_page> {
             fontFamily: 'SpaceGrotesk',
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Container(
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Color(0xFFE5E4D8),
+            color: const Color(0xFFE5E4D8),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 6,
@@ -145,8 +145,8 @@ class _SignUpPageState extends State<Sign_up_page> {
           child: TextField(
             controller: _passwordController,
             obscureText: true,
-            style: TextStyle(color: Colors.black87),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.lock_outline, color: Colors.black),
@@ -161,20 +161,20 @@ class _SignUpPageState extends State<Sign_up_page> {
 
   Widget SignUpButton() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       width: 164,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSignUp,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFFBD7D5A),
-          padding: EdgeInsets.all(15),
+          backgroundColor: const Color(0xFFBD7D5A),
+          padding: const EdgeInsets.all(15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 5,
         ),
         child: _isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
@@ -182,7 +182,7 @@ class _SignUpPageState extends State<Sign_up_page> {
                   strokeWidth: 2,
                 ),
               )
-            : Text(
+            : const Text(
                 'Inscription',
                 style: TextStyle(
                   color: Color(0xFFF4F3E9),
@@ -196,6 +196,8 @@ class _SignUpPageState extends State<Sign_up_page> {
   }
 
   Future<void> _handleSignUp() async {
+    if (!mounted) return;
+
     // Validation des champs
     if (_usernameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
@@ -224,6 +226,7 @@ class _SignUpPageState extends State<Sign_up_page> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -238,7 +241,12 @@ class _SignUpPageState extends State<Sign_up_page> {
             .updateDisplayName(_usernameController.text.trim());
 
         // Envoyer un email de vérification
-        await userCredential.user!.sendEmailVerification();
+        try {
+          await userCredential.user!.sendEmailVerification();
+        } catch (e) {
+          debugPrint('Error sending verification email: $e');
+          // Continue même si l'envoi de l'email échoue
+        }
 
         if (mounted) {
           // Afficher un message de succès
@@ -251,25 +259,29 @@ class _SignUpPageState extends State<Sign_up_page> {
               ),
               title: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green),
-                  SizedBox(width: 8),
-                  Text('Succès', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+                  const Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 8),
+                  const Text('Succès',
+                      style: TextStyle(fontFamily: 'SpaceGrotesk')),
                 ],
               ),
-              content: Text(
+              content: const Text(
                 'Compte créé avec succès!\nUn email de vérification a été envoyé.',
                 style: TextStyle(fontFamily: 'SpaceGrotesk'),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context); // Fermer le dialog
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => Bilanpage()),
-                    );
+                    if (mounted) {
+                      Navigator.pop(context); // Fermer le dialog
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const Bilanpage()),
+                      );
+                    }
                   },
-                  child: Text(
+                  child: const Text(
                     'Continuer',
                     style: TextStyle(
                       color: Color(0xFF00C1C4),
@@ -284,6 +296,8 @@ class _SignUpPageState extends State<Sign_up_page> {
         }
       }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
       String message = 'Une erreur est survenue';
 
       switch (e.code) {
@@ -308,6 +322,7 @@ class _SignUpPageState extends State<Sign_up_page> {
 
       _showErrorDialog(message);
     } catch (e) {
+      if (!mounted) return;
       _showErrorDialog('Erreur d\'inscription: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -315,6 +330,8 @@ class _SignUpPageState extends State<Sign_up_page> {
   }
 
   void _showErrorDialog(String message) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -323,19 +340,19 @@ class _SignUpPageState extends State<Sign_up_page> {
         ),
         title: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+            const Icon(Icons.error_outline, color: Colors.red),
+            const SizedBox(width: 8),
+            const Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
           ],
         ),
         content: Text(
           message,
-          style: TextStyle(fontFamily: 'SpaceGrotesk'),
+          style: const TextStyle(fontFamily: 'SpaceGrotesk'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               'OK',
               style: TextStyle(
                 color: Color(0xFF00C1C4),
@@ -352,13 +369,13 @@ class _SignUpPageState extends State<Sign_up_page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF4F3E9),
+      backgroundColor: const Color(0xFFF4F3E9),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               height: 180,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 1.png'),
                   fit: BoxFit.fitWidth,
@@ -366,8 +383,8 @@ class _SignUpPageState extends State<Sign_up_page> {
               ),
             ),
             Container(
-              margin: EdgeInsets.only(right: 50, left: 50),
-              child: Center(
+              margin: const EdgeInsets.only(right: 50, left: 50),
+              child: const Center(
                 child: Text(
                   "Pi-Vert",
                   style: TextStyle(
@@ -379,16 +396,16 @@ class _SignUpPageState extends State<Sign_up_page> {
                 ),
               ),
             ),
-            SizedBox(height: 21),
+            const SizedBox(height: 21),
             buildUser(),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             buildEmail(),
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             buildPassword(),
             SignUpButton(),
             Container(
               height: 145,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 2.png'),
                   fit: BoxFit.fitWidth,
