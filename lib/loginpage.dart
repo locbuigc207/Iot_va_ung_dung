@@ -59,6 +59,8 @@ class _LoginpageState extends State<Loginpage> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
+              hintText: 'exemple@email.com',
+              hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
         )
@@ -102,6 +104,8 @@ class _LoginpageState extends State<Loginpage> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.lock_outline, color: Colors.black),
+              hintText: '••••••••',
+              hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
         )
@@ -167,20 +171,29 @@ class _LoginpageState extends State<Loginpage> {
   }
 
   Future<void> _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    // Validation des champs
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
       _showErrorDialog('Veuillez remplir tous les champs');
+      return;
+    }
+
+    // Validation format email
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      _showErrorDialog('Format d\'email invalide');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final user = await auth.signInWithEmailAndPassword(
+      final userCredential = await auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      if (user.user != null) {
+      if (userCredential.user != null && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => Bilanpage()),
@@ -188,13 +201,30 @@ class _LoginpageState extends State<Loginpage> {
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Une erreur est survenue';
-      if (e.code == 'user-not-found') {
-        message = 'Aucun utilisateur trouvé avec cet email';
-      } else if (e.code == 'wrong-password') {
-        message = 'Mot de passe incorrect';
-      } else if (e.code == 'invalid-email') {
-        message = 'Email invalide';
+
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'Aucun utilisateur trouvé avec cet email';
+          break;
+        case 'wrong-password':
+          message = 'Mot de passe incorrect';
+          break;
+        case 'invalid-email':
+          message = 'Email invalide';
+          break;
+        case 'user-disabled':
+          message = 'Ce compte a été désactivé';
+          break;
+        case 'too-many-requests':
+          message = 'Trop de tentatives. Réessayez plus tard';
+          break;
+        case 'network-request-failed':
+          message = 'Erreur réseau. Vérifiez votre connexion';
+          break;
+        default:
+          message = 'Erreur d\'authentification: ${e.message}';
       }
+
       _showErrorDialog(message);
     } catch (e) {
       _showErrorDialog('Erreur de connexion: ${e.toString()}');
@@ -207,12 +237,31 @@ class _LoginpageState extends State<Loginpage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Erreur'),
-        content: Text(message),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(fontFamily: 'SpaceGrotesk'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: Color(0xFF00C1C4),
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

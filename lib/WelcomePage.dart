@@ -1,32 +1,42 @@
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
 import 'package:projet2cp/login_screen.dart';
+
 import 'Body.dart';
 
 class WelcomePage extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => InitState();
-
 }
 
 class InitState extends State<WelcomePage> {
+  Timer? _timer;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     startTimer();
   }
 
-  startTimer() async {
-    var duration = Duration(seconds: 3);
-    return new Timer(duration, loginRoute);
+  startTimer() {
+    _timer = Timer(Duration(seconds: 3), loginRoute);
   }
 
   loginRoute() {
-    Navigator.pushReplacement(context, MaterialPageRoute(
-      builder: (context) => Login_screen(),
-    ));
+    if (mounted) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Login_screen(),
+          ));
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override

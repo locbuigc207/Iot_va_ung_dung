@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:projet2cp/Homescreen.dart';
+import 'package:projet2cp/bilanpage.dart';
 
 class Sign_up_page extends StatefulWidget {
   const Sign_up_page({Key? key}) : super(key: key);
@@ -60,6 +60,8 @@ class _SignUpPageState extends State<Sign_up_page> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.person, color: Colors.black),
+              hintText: 'Votre nom',
+              hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
         )
@@ -103,6 +105,8 @@ class _SignUpPageState extends State<Sign_up_page> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
+              hintText: 'exemple@email.com',
+              hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
         )
@@ -146,6 +150,8 @@ class _SignUpPageState extends State<Sign_up_page> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.lock_outline, color: Colors.black),
+              hintText: 'Min. 6 caractères',
+              hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
         )
@@ -190,13 +196,29 @@ class _SignUpPageState extends State<Sign_up_page> {
   }
 
   Future<void> _handleSignUp() async {
-    if (_usernameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
+    // Validation des champs
+    if (_usernameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
       _showErrorDialog('Veuillez remplir tous les champs');
       return;
     }
 
+    // Validation nom d'utilisateur
+    if (_usernameController.text.trim().length < 2) {
+      _showErrorDialog(
+          'Le nom d\'utilisateur doit contenir au moins 2 caractères');
+      return;
+    }
+
+    // Validation format email
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      _showErrorDialog('Format d\'email invalide');
+      return;
+    }
+
+    // Validation mot de passe
     if (_passwordController.text.length < 6) {
       _showErrorDialog('Le mot de passe doit contenir au moins 6 caractères');
       return;
@@ -205,29 +227,85 @@ class _SignUpPageState extends State<Sign_up_page> {
     setState(() => _isLoading = true);
 
     try {
-      final newUser = await auth.createUserWithEmailAndPassword(
+      final userCredential = await auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      if (newUser.user != null) {
-        // Update display name
-        await newUser.user!.updateDisplayName(_usernameController.text);
+      if (userCredential.user != null) {
+        // Mettre à jour le nom d'affichage
+        await userCredential.user!
+            .updateDisplayName(_usernameController.text.trim());
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeScreen()),
-        );
+        // Envoyer un email de vérification
+        await userCredential.user!.sendEmailVerification();
+
+        if (mounted) {
+          // Afficher un message de succès
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Succès', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+                ],
+              ),
+              content: Text(
+                'Compte créé avec succès!\nUn email de vérification a été envoyé.',
+                style: TextStyle(fontFamily: 'SpaceGrotesk'),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Fermer le dialog
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Bilanpage()),
+                    );
+                  },
+                  child: Text(
+                    'Continuer',
+                    style: TextStyle(
+                      color: Color(0xFF00C1C4),
+                      fontFamily: 'SpaceGrotesk',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Une erreur est survenue';
-      if (e.code == 'weak-password') {
-        message = 'Le mot de passe est trop faible';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'Cet email est déjà utilisé';
-      } else if (e.code == 'invalid-email') {
-        message = 'Email invalide';
+
+      switch (e.code) {
+        case 'weak-password':
+          message = 'Le mot de passe est trop faible';
+          break;
+        case 'email-already-in-use':
+          message = 'Cet email est déjà utilisé';
+          break;
+        case 'invalid-email':
+          message = 'Email invalide';
+          break;
+        case 'operation-not-allowed':
+          message = 'Opération non autorisée';
+          break;
+        case 'network-request-failed':
+          message = 'Erreur réseau. Vérifiez votre connexion';
+          break;
+        default:
+          message = 'Erreur d\'inscription: ${e.message}';
       }
+
       _showErrorDialog(message);
     } catch (e) {
       _showErrorDialog('Erreur d\'inscription: ${e.toString()}');
@@ -240,12 +318,31 @@ class _SignUpPageState extends State<Sign_up_page> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Erreur'),
-        content: Text(message),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(fontFamily: 'SpaceGrotesk'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: Color(0xFF00C1C4),
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

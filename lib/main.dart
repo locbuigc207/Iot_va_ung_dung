@@ -4,7 +4,13 @@ import 'package:projet2cp/WelcomePage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
+
   runApp(MyApp());
 }
 
