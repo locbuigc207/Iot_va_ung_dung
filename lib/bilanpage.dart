@@ -14,7 +14,7 @@ class Bilanpage extends StatefulWidget {
 
 class _BilanpageState extends State<Bilanpage> {
   final DatabaseReference ref = FirebaseDatabase.instance.ref('Data');
-  final int _maxDataPoints = 100; // Giới hạn 100 điểm để tối ưu performance
+  final int _maxDataPoints = 100;
 
   String? data;
   Map<String, dynamic>? convertedData;
@@ -42,7 +42,6 @@ class _BilanpageState extends State<Bilanpage> {
             if (event.snapshot.value != null) {
               final value = event.snapshot.value;
 
-              // Convert to JSON string
               if (value is Map) {
                 data = jsonEncode(value);
               } else {
@@ -85,28 +84,21 @@ class _BilanpageState extends State<Bilanpage> {
         double? property;
 
         if (value is Map) {
-          // Structure: {time: x, property: y}
           if (value.containsKey('time') && value.containsKey('property')) {
             time = _parseDouble(value['time']);
             property = _parseDouble(value['property']);
-          }
-          // Structure: {x: time, y: value}
-          else if (value.containsKey('x') && value.containsKey('y')) {
+          } else if (value.containsKey('x') && value.containsKey('y')) {
             time = _parseDouble(value['x']);
             property = _parseDouble(value['y']);
-          }
-          // Structure: first value is the property
-          else if (value.values.isNotEmpty) {
+          } else if (value.values.isNotEmpty) {
             time = _parseDouble(key);
             property = _parseDouble(value.values.first);
           }
         } else if (value is num) {
-          // Simple structure: key -> value
           time = _parseDouble(key);
           property = value.toDouble();
         }
 
-        // If we couldn't parse time, use index
         time ??= index.toDouble();
 
         if (property != null) {
@@ -115,12 +107,9 @@ class _BilanpageState extends State<Bilanpage> {
         }
       });
 
-      // Sort by time
       chartData.sort((a, b) => a.time.compareTo(b.time));
 
-      // Giới hạn số lượng điểm hiển thị để tối ưu performance
       if (chartData.length > _maxDataPoints) {
-        // Lấy _maxDataPoints điểm cuối cùng (mới nhất)
         chartData = chartData.sublist(chartData.length - _maxDataPoints);
       }
     } catch (e) {
@@ -237,7 +226,6 @@ class _BilanpageState extends State<Bilanpage> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        // Chart Card
                         Card(
                           elevation: 4,
                           shape: RoundedRectangleBorder(
@@ -297,28 +285,28 @@ class _BilanpageState extends State<Bilanpage> {
                                           ),
                                         )
                                       : SfCartesianChart(
-                                          primaryXAxis: const NumericAxis(
+                                          primaryXAxis: NumericAxis(
                                             title: AxisTitle(
                                               text: 'Temps',
-                                              textStyle: TextStyle(
+                                              textStyle: const TextStyle(
                                                 fontFamily: 'SpaceGrotesk',
                                                 fontSize: 12,
                                               ),
                                             ),
-                                            labelStyle: TextStyle(
+                                            labelStyle: const TextStyle(
                                               fontFamily: 'SpaceGrotesk',
                                               fontSize: 10,
                                             ),
                                           ),
-                                          primaryYAxis: const NumericAxis(
+                                          primaryYAxis: NumericAxis(
                                             title: AxisTitle(
                                               text: 'Valeur',
-                                              textStyle: TextStyle(
+                                              textStyle: const TextStyle(
                                                 fontFamily: 'SpaceGrotesk',
                                                 fontSize: 12,
                                               ),
                                             ),
-                                            labelStyle: TextStyle(
+                                            labelStyle: const TextStyle(
                                               fontFamily: 'SpaceGrotesk',
                                               fontSize: 10,
                                             ),
@@ -363,8 +351,6 @@ class _BilanpageState extends State<Bilanpage> {
                           ),
                         ),
                         const SizedBox(height: 20),
-
-                        // Raw Data Card
                         if (convertedData != null && convertedData!.isNotEmpty)
                           Card(
                             elevation: 4,
