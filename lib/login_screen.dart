@@ -15,29 +15,37 @@ class _LoginScreenState extends State<Login_screen> {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
       body: Container(
-        color: Color(0xFFF4F3E9),
+        color: const Color(0xFFF4F3E9),
         height: size.height,
         width: double.infinity,
         child: Stack(
           children: <Widget>[
+            // Background image
             Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/imageback.png'),
                   fit: BoxFit.cover,
                 ),
               ),
             ),
+
+            // Girl image
             Container(
               height: 445,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('Assets/Girl.png'),
+                  image: const AssetImage('Assets/Girl.png'),
                   fit: BoxFit.contain,
+                  onError: (error, stackTrace) {
+                    print('Error loading Girl.png: $error');
+                  },
                 ),
               ),
             ),
-            Positioned(
+
+            // App name
+            const Positioned(
               top: 365,
               left: 140,
               child: Text(
@@ -52,7 +60,9 @@ class _LoginScreenState extends State<Login_screen> {
                 ),
               ),
             ),
-            Positioned(
+
+            // Tagline
+            const Positioned(
               top: 415,
               left: 100,
               child: Text(
@@ -66,6 +76,8 @@ class _LoginScreenState extends State<Login_screen> {
                 ),
               ),
             ),
+
+            // Login button
             Positioned(
               top: 470,
               left: 130,
@@ -73,17 +85,18 @@ class _LoginScreenState extends State<Login_screen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => Loginpage()),
+                    MaterialPageRoute(builder: (context) => const Loginpage()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF00C1C4),
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  backgroundColor: const Color(0xFF00C1C4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Connexion',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -95,6 +108,8 @@ class _LoginScreenState extends State<Login_screen> {
                 ),
               ),
             ),
+
+            // Sign up button
             Positioned(
               top: 535,
               left: 130,
@@ -102,17 +117,19 @@ class _LoginScreenState extends State<Login_screen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => Sign_up_page()),
+                    MaterialPageRoute(
+                        builder: (context) => const Sign_up_page()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFBD7D5A),
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  backgroundColor: const Color(0xFFBD7D5A),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Inscription',
                   textAlign: TextAlign.center,
                   style: TextStyle(

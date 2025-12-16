@@ -6,30 +6,33 @@ import 'package:projet2cp/login_screen.dart';
 import 'Body.dart';
 
 class WelcomePage extends StatefulWidget {
+  const WelcomePage({Key? key}) : super(key: key);
+
   @override
-  State<StatefulWidget> createState() => InitState();
+  State<WelcomePage> createState() => _WelcomePageState();
 }
 
-class InitState extends State<WelcomePage> {
+class _WelcomePageState extends State<WelcomePage> {
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    startTimer();
+    _startTimer();
   }
 
-  startTimer() {
-    _timer = Timer(Duration(seconds: 3), loginRoute);
+  void _startTimer() {
+    _timer = Timer(const Duration(seconds: 3), _navigateToLogin);
   }
 
-  loginRoute() {
+  void _navigateToLogin() {
     if (mounted) {
       Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Login_screen(),
-          ));
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Login_screen(),
+        ),
+      );
     }
   }
 
@@ -41,7 +44,7 @@ class InitState extends State<WelcomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Body(),
     );
   }
