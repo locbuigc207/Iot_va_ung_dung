@@ -12,27 +12,27 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.6
+  cupertino_icons: ^1.0.8
 
-  # Firebase
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_database: ^10.3.8
-  firebase_storage: ^11.5.6
+  # Firebase - Phiên bản ổn định
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.16.0
+  firebase_database: ^10.5.7
+  cloud_firestore: ^4.17.5
+  firebase_storage: ^11.6.5
 
   # Charts
-  fl_chart: ^0.66.0
-  syncfusion_flutter_charts: ^24.1.41
+  fl_chart: ^0.66.2
+  syncfusion_flutter_charts: ^24.2.9
 
   # UI & Utils
-  provider: ^6.1.1
+  provider: ^6.1.2
   intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
+  flutter_lints: ^3.0.2
 
 flutter:
   uses-material-design: true
