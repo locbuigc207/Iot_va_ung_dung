@@ -1,66 +1,48 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:projet2cp/loginpage.dart';
 import 'package:projet2cp/signuppage.dart';
 
 class Login_screen extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() => InitState();
+  const Login_screen({Key? key}) : super(key: key);
 
+  @override
+  State<Login_screen> createState() => _LoginScreenState();
 }
 
-class InitState extends State<Login_screen> {
+class _LoginScreenState extends State<Login_screen> {
   @override
   Widget build(BuildContext context) {
-    return initWidget();
-  }
-
-  Widget initWidget() {
     Size size = MediaQuery.of(context).size;
-    return Container(
-      color: Color(0xFFF4F3E9),
-      height: size.height,
-      width: double.infinity,
-      child: Stack(
-        children: <Widget>[
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('Assets/imageback.png'),
-                fit: BoxFit.cover,
+    return Scaffold(
+      body: Container(
+        color: Color(0xFFF4F3E9),
+        height: size.height,
+        width: double.infinity,
+        child: Stack(
+          children: <Widget>[
+            Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('Assets/imageback.png'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
-          Container(
-            height: 445,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('Assets/Girl.png'),
+            Container(
+              height: 445,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('Assets/Girl.png'),
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
-          /*Positioned(
-            top: 130,
-            left: 60,
-            child: Image.asset('Assets/Girl.png'),
-          ),*/
-          Positioned(
-            //height: 500,
-            top: 365,
-            left: 140,
-            child: Text(
-              'Pi-Vert',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                decoration: TextDecoration.none,
-                color: Color(0xFF084C61),
-                fontFamily: 'VeronaSerial',
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            /*child: Text(
+            Positioned(
+              top: 365,
+              left: 140,
+              child: Text(
                 'Pi-Vert',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   decoration: TextDecoration.none,
                   color: Color(0xFF084C61),
@@ -68,85 +50,43 @@ class InitState extends State<Login_screen> {
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
                 ),
-              ),*/
-          ),
-          Positioned(
-            top: 415,
-            left: 100,
-            child: Text(
-              'Rendez vos plantes fières',
-              style: TextStyle(
-                decoration: TextDecoration.none,
-                color: Color(0xFF084C61),
-                fontFamily: 'SpaceGrotesk',
-                fontSize: 18,
-                fontWeight: FontWeight.normal,
               ),
             ),
-          ),
-          Positioned(
+            Positioned(
+              top: 415,
+              left: 100,
+              child: Text(
+                'Rendez vos plantes fières',
+                style: TextStyle(
+                  decoration: TextDecoration.none,
+                  color: Color(0xFF084C61),
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 18,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ),
+            Positioned(
               top: 470,
               left: 130,
-              child: Container(
-                height: 45,
-                width: 160,
-                padding: EdgeInsets.all(7),
-                decoration: new BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Color(0xFF00C1C4),
-                ),
-                child: FlatButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) {
-                          return Loginpage();
-                        },
-                      ),
-                    );
-                  },
-                  child: Text(
-                    'Connexion',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      decoration: TextDecoration.none,
-                      color: Color(0xFFF4F3E9),
-                      fontFamily: 'SpaceGrotesk',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              )
-          ),
-          Positioned(
-            top: 535,
-            left: 130,
-            child: Container(
-              height: 45,
-              width: 160,
-              padding: EdgeInsets.all(7),
-              decoration: new BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Color(0xFFBD7D5A),
-              ),
-              child: FlatButton(
+              child: ElevatedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return Sign_up_page();
-                      },
-                    ),
+                    MaterialPageRoute(builder: (context) => Loginpage()),
                   );
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF00C1C4),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 child: Text(
-                  'Inscription',
+                  'Connexion',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    decoration: TextDecoration.none,
                     color: Color(0xFFF4F3E9),
                     fontFamily: 'SpaceGrotesk',
                     fontSize: 20,
@@ -155,20 +95,37 @@ class InitState extends State<Login_screen> {
                 ),
               ),
             ),
-          ),
-          /*Container(
-          width : MediaQuery.of(context).size.width,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child : Image.asset('Assets/Vector 2.png'),
+            Positioned(
+              top: 535,
+              left: 130,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Sign_up_page()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFBD7D5A),
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Inscription',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFFF4F3E9),
+                    fontFamily: 'SpaceGrotesk',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
-            /*decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('Assets/Vector 2.png'),
-                fit: BoxFit.fitWidth,
-              ),*/
-            ),*/
-        ],
+          ],
+        ),
       ),
     );
   }
