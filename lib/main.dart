@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hust_iot/login_screen.dart';
+import 'package:hust_iot/pages/home_page.dart';
 import 'package:hust_iot/welcome_page.dart';
 
 void main() async {
@@ -55,7 +57,12 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const WelcomePage(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const WelcomePage(),
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomePage(),
+      },
     );
   }
 }
