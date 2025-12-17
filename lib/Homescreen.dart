@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:projet2cp/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
-    State<StatefulWidget> createState() => InitState();
+  State<StatefulWidget> createState() => InitState();
 }
 
 class InitState extends State<HomeScreen> {
@@ -14,16 +13,13 @@ class InitState extends State<HomeScreen> {
 
   Widget homeWidget() {
     Size size = MediaQuery.of(context).size;
-      return Container(
-        color: Colors.white,
-        //height: size.height,
-        width: double.infinity,
-          child: Column(
-            children: <Widget> [
-
-            ],
-          ) ,
-      );
+    return Container(
+      color: Colors.white,
+      //height: size.height,
+      width: double.infinity,
+      child: Column(
+        children: <Widget>[],
+      ),
+    );
   }
-
 }

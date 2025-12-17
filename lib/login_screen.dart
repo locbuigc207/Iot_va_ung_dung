@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:projet2cp/loginpage.dart';
 import 'package:projet2cp/signuppage.dart';
 
-class Login_screen extends StatefulWidget {
-  const Login_screen({Key? key}) : super(key: key);
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<Login_screen> createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<Login_screen> {
+class _LoginScreenState extends State<LoginScreen> {
   bool _errorLoadingGirl = false;
 
   @override
@@ -37,7 +37,7 @@ class _LoginScreenState extends State<Login_screen> {
               top: 0,
               left: 0,
               right: 0,
-              child: Container(
+              child: SizedBox(
                 height: 445,
                 child: _errorLoadingGirl
                     ? Center(
@@ -47,7 +47,7 @@ class _LoginScreenState extends State<Login_screen> {
                             Icon(
                               Icons.account_circle,
                               size: 150,
-                              color: Color(0xFF084C61).withOpacity(0.5),
+                              color: const Color(0xFF084C61).withOpacity(0.5),
                             ),
                             const SizedBox(height: 10),
                             const Text(
@@ -81,7 +81,7 @@ class _LoginScreenState extends State<Login_screen> {
             ),
 
             // App name
-            Positioned(
+            const Positioned(
               top: 365,
               left: 0,
               right: 0,
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<Login_screen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     decoration: TextDecoration.none,
-                    color: const Color(0xFF084C61),
+                    color: Color(0xFF084C61),
                     fontFamily: 'VeronaSerial',
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
@@ -101,16 +101,16 @@ class _LoginScreenState extends State<Login_screen> {
             ),
 
             // Tagline
-            Positioned(
+            const Positioned(
               top: 415,
               left: 0,
               right: 0,
               child: Center(
                 child: Text(
-                  'Rendez vos plantes fières',
+                  'Make Your Plants Proud',
                   style: TextStyle(
                     decoration: TextDecoration.none,
-                    color: const Color(0xFF084C61),
+                    color: Color(0xFF084C61),
                     fontFamily: 'SpaceGrotesk',
                     fontSize: 18,
                     fontWeight: FontWeight.normal,
@@ -133,7 +133,7 @@ class _LoginScreenState extends State<Login_screen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const Loginpage()),
+                              builder: (context) => const LoginPage()),
                         );
                       }
                     },
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<Login_screen> {
                       elevation: 5,
                     ),
                     child: const Text(
-                      'Connexion',
+                      'Login',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFFF4F3E9),
@@ -175,7 +175,7 @@ class _LoginScreenState extends State<Login_screen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const Sign_up_page()),
+                              builder: (context) => const SignUpPage()),
                         );
                       }
                     },
@@ -189,7 +189,7 @@ class _LoginScreenState extends State<Login_screen> {
                       elevation: 5,
                     ),
                     child: const Text(
-                      'Inscription',
+                      'Sign Up',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFFF4F3E9),
