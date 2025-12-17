@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pivert_iot/pages/login_page.dart';
-import 'package:pivert_iot/pages/signup_page.dart';
+import 'package:hust_iot/pages/login_page.dart';
+import 'package:hust_iot/pages/signup_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);

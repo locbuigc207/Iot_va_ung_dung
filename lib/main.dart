@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pivert_iot/welcome_page.dart';
+import 'package:hust_iot/welcome_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,12 +17,13 @@ void main() async {
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: 'AIzaSyD8J3kRF5-NHm0DUuliFtUpVduPMg2DTWs',
-        appId: '1:852160365626:android:2a3b58fd8a31f12ad16103',
-        messagingSenderId: '852160365626',
-        projectId: 'system-d-arrosage',
-        databaseURL: 'https://system-d-arrosage-default-rtdb.firebaseio.com',
-        storageBucket: 'system-d-arrosage.appspot.com',
+        apiKey: 'AIzaSyA3Y0n-Jdjxym66sjvNJ3pptxRrMMJGUps',
+        appId: '1:526952035891:android:eaccde267d89704b5f9546',
+        messagingSenderId: '526952035891',
+        projectId: 'flutter-chat-app-3e625',
+        databaseURL:
+            'https://flutter-chat-app-3e625-default-rtdb.firebaseio.com',
+        storageBucket: 'flutter-chat-app-3e625.firebasestorage.app',
       ),
     );
     firebaseInitialized = true;

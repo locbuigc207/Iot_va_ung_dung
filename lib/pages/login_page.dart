@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:pivert_iot/pages/data_page.dart';
-import 'package:pivert_iot/pages/reset_password.dart';
+import 'package:hust_iot/pages/data_page.dart';
+import 'package:hust_iot/pages/reset_password.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);

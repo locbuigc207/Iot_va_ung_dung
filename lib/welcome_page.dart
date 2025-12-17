@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:pivert_iot/body.dart';
-import 'package:pivert_iot/login_screen.dart';
+import 'package:hust_iot/body.dart';
+import 'package:hust_iot/login_screen.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({Key? key}) : super(key: key);

@@ -1,5 +1,5 @@
-name: pivert_iot
-description: A Flutter plant monitoring application with IoT integration for HUST.
+name: hust_iot
+description: Pi-Vert - A Flutter plant monitoring application with IoT integration for HUST.
 
 publish_to: 'none'
 
