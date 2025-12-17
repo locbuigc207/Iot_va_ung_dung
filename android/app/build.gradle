@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.example.projet2cp"
+    namespace "hust.iot"
     compileSdk 34
 
     compileOptions {
@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.projet2cp"
+        applicationId "hust.iot"
         minSdk 24
         targetSdk 34
         multiDexEnabled true

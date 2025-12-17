@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:projet2cp/login_screen.dart';
-
-import 'Body.dart';
+import 'package:pivert_iot/body.dart';
+import 'package:pivert_iot/login_screen.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({Key? key}) : super(key: key);
@@ -30,7 +29,7 @@ class _WelcomePageState extends State<WelcomePage> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const Login_screen(),
+          builder: (context) => const LoginScreen(),
         ),
       );
     }

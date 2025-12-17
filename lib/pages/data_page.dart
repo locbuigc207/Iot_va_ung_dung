@@ -5,22 +5,22 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-class Bilanpage extends StatefulWidget {
-  const Bilanpage({Key? key}) : super(key: key);
+class DataPage extends StatefulWidget {
+  const DataPage({Key? key}) : super(key: key);
 
   @override
-  State<Bilanpage> createState() => _BilanpageState();
+  State<DataPage> createState() => _DataPageState();
 }
 
-class _BilanpageState extends State<Bilanpage> {
-  final DatabaseReference ref = FirebaseDatabase.instance.ref('Data');
+class _DataPageState extends State<DataPage> {
+  final DatabaseReference _ref = FirebaseDatabase.instance.ref('Data');
   final int _maxDataPoints = 100;
 
-  String? data;
-  Map<String, dynamic>? convertedData;
-  List<FireData> chartData = [];
-  bool isLoading = true;
-  String errorMessage = '';
+  String? _data;
+  Map<String, dynamic>? _convertedData;
+  List<FireData> _chartData = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
   StreamSubscription<DatabaseEvent>? _subscription;
 
   @override
@@ -33,7 +33,7 @@ class _BilanpageState extends State<Bilanpage> {
     _subscription?.cancel();
     _subscription = null;
 
-    _subscription = ref.onValue.listen(
+    _subscription = _ref.onValue.listen(
       (event) {
         if (!mounted) return;
 
@@ -43,43 +43,43 @@ class _BilanpageState extends State<Bilanpage> {
               final value = event.snapshot.value;
 
               if (value is Map) {
-                data = jsonEncode(value);
+                _data = jsonEncode(value);
               } else {
-                data = jsonEncode({'value': value});
+                _data = jsonEncode({'value': value});
               }
 
-              convertedData = jsonDecode(data!);
+              _convertedData = jsonDecode(_data!);
               _processChartData();
-              errorMessage = '';
+              _errorMessage = '';
             } else {
-              errorMessage = 'Aucune donnée disponible';
-              chartData = [];
+              _errorMessage = 'No data available';
+              _chartData = [];
             }
           } catch (e) {
-            errorMessage = 'Erreur de traitement: $e';
+            _errorMessage = 'Processing error: $e';
             debugPrint('Error listening to data: $e');
           }
-          isLoading = false;
+          _isLoading = false;
         });
       },
       onError: (error) {
         if (!mounted) return;
         setState(() {
-          errorMessage = 'Erreur de connexion: $error';
-          isLoading = false;
+          _errorMessage = 'Connection error: $error';
+          _isLoading = false;
         });
       },
     );
   }
 
   void _processChartData() {
-    if (convertedData == null) return;
+    if (_convertedData == null) return;
 
-    chartData.clear();
+    _chartData.clear();
     int index = 0;
 
     try {
-      convertedData!.forEach((key, value) {
+      _convertedData!.forEach((key, value) {
         double? time;
         double? property;
 
@@ -102,19 +102,19 @@ class _BilanpageState extends State<Bilanpage> {
         time ??= index.toDouble();
 
         if (property != null) {
-          chartData.add(FireData(time, property));
+          _chartData.add(FireData(time, property));
           index++;
         }
       });
 
-      chartData.sort((a, b) => a.time.compareTo(b.time));
+      _chartData.sort((a, b) => a.time.compareTo(b.time));
 
-      if (chartData.length > _maxDataPoints) {
-        chartData = chartData.sublist(chartData.length - _maxDataPoints);
+      if (_chartData.length > _maxDataPoints) {
+        _chartData = _chartData.sublist(_chartData.length - _maxDataPoints);
       }
     } catch (e) {
       debugPrint('Error processing chart data: $e');
-      errorMessage = 'Erreur de traitement des données graphiques';
+      _errorMessage = 'Error processing chart data';
     }
   }
 
@@ -130,9 +130,9 @@ class _BilanpageState extends State<Bilanpage> {
     if (!mounted) return;
 
     setState(() {
-      isLoading = true;
-      errorMessage = '';
-      chartData = [];
+      _isLoading = true;
+      _errorMessage = '';
+      _chartData = [];
     });
     _listenToData();
   }
@@ -143,7 +143,7 @@ class _BilanpageState extends State<Bilanpage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
-            'Données',
+            'Data',
             style: TextStyle(
               fontFamily: 'VeronaSerial',
               color: Color(0xFFF4F3E9),
@@ -167,7 +167,7 @@ class _BilanpageState extends State<Bilanpage> {
           backgroundColor: const Color(0xFF00C1C4),
         ),
         backgroundColor: const Color(0xFFF4F3E9),
-        body: isLoading
+        body: _isLoading
             ? const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -177,7 +177,7 @@ class _BilanpageState extends State<Bilanpage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Chargement des données...',
+                      'Loading data...',
                       style: TextStyle(
                         fontFamily: 'SpaceGrotesk',
                         fontSize: 16,
@@ -186,7 +186,7 @@ class _BilanpageState extends State<Bilanpage> {
                   ],
                 ),
               )
-            : errorMessage.isNotEmpty
+            : _errorMessage.isNotEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -200,7 +200,7 @@ class _BilanpageState extends State<Bilanpage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            errorMessage,
+                            _errorMessage,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontFamily: 'SpaceGrotesk',
@@ -212,7 +212,7 @@ class _BilanpageState extends State<Bilanpage> {
                           ElevatedButton.icon(
                             onPressed: _refreshData,
                             icon: const Icon(Icons.refresh),
-                            label: const Text('Réessayer'),
+                            label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF00C1C4),
                               foregroundColor: Colors.white,
@@ -241,17 +241,17 @@ class _BilanpageState extends State<Bilanpage> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     const Text(
-                                      'Graphique des données',
+                                      'Data Chart',
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         fontFamily: 'SpaceGrotesk',
                                       ),
                                     ),
-                                    if (chartData.isNotEmpty)
+                                    if (_chartData.isNotEmpty)
                                       Chip(
                                         label: Text(
-                                          '${chartData.length} points',
+                                          '${_chartData.length} points',
                                           style: const TextStyle(fontSize: 12),
                                         ),
                                         backgroundColor: const Color(0xFF00C1C4)
@@ -262,7 +262,7 @@ class _BilanpageState extends State<Bilanpage> {
                                 const SizedBox(height: 20),
                                 SizedBox(
                                   height: 300,
-                                  child: chartData.isEmpty
+                                  child: _chartData.isEmpty
                                       ? const Center(
                                           child: Column(
                                             mainAxisAlignment:
@@ -275,7 +275,7 @@ class _BilanpageState extends State<Bilanpage> {
                                               ),
                                               SizedBox(height: 8),
                                               Text(
-                                                'Aucune donnée graphique disponible',
+                                                'No chart data available',
                                                 style: TextStyle(
                                                   fontFamily: 'SpaceGrotesk',
                                                   color: Colors.grey,
@@ -285,28 +285,28 @@ class _BilanpageState extends State<Bilanpage> {
                                           ),
                                         )
                                       : SfCartesianChart(
-                                          primaryXAxis: NumericAxis(
+                                          primaryXAxis: const NumericAxis(
                                             title: AxisTitle(
-                                              text: 'Temps',
-                                              textStyle: const TextStyle(
+                                              text: 'Time',
+                                              textStyle: TextStyle(
                                                 fontFamily: 'SpaceGrotesk',
                                                 fontSize: 12,
                                               ),
                                             ),
-                                            labelStyle: const TextStyle(
+                                            labelStyle: TextStyle(
                                               fontFamily: 'SpaceGrotesk',
                                               fontSize: 10,
                                             ),
                                           ),
-                                          primaryYAxis: NumericAxis(
+                                          primaryYAxis: const NumericAxis(
                                             title: AxisTitle(
-                                              text: 'Valeur',
-                                              textStyle: const TextStyle(
+                                              text: 'Value',
+                                              textStyle: TextStyle(
                                                 fontFamily: 'SpaceGrotesk',
                                                 fontSize: 12,
                                               ),
                                             ),
-                                            labelStyle: const TextStyle(
+                                            labelStyle: TextStyle(
                                               fontFamily: 'SpaceGrotesk',
                                               fontSize: 10,
                                             ),
@@ -314,7 +314,7 @@ class _BilanpageState extends State<Bilanpage> {
                                           series: <CartesianSeries<FireData,
                                               double>>[
                                             LineSeries<FireData, double>(
-                                              dataSource: chartData,
+                                              dataSource: _chartData,
                                               xValueMapper:
                                                   (FireData data, _) =>
                                                       data.time,
@@ -335,7 +335,7 @@ class _BilanpageState extends State<Bilanpage> {
                                           tooltipBehavior: TooltipBehavior(
                                             enable: true,
                                             format:
-                                                'Temps: point.x\nValeur: point.y',
+                                                'Time: point.x\nValue: point.y',
                                             textStyle: const TextStyle(
                                               fontFamily: 'SpaceGrotesk',
                                             ),
@@ -351,7 +351,8 @@ class _BilanpageState extends State<Bilanpage> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        if (convertedData != null && convertedData!.isNotEmpty)
+                        if (_convertedData != null &&
+                            _convertedData!.isNotEmpty)
                           Card(
                             elevation: 4,
                             shape: RoundedRectangleBorder(
@@ -363,7 +364,7 @@ class _BilanpageState extends State<Bilanpage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Données brutes',
+                                    'Raw Data',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -383,7 +384,7 @@ class _BilanpageState extends State<Bilanpage> {
                                     ),
                                     child: SingleChildScrollView(
                                       child: SelectableText(
-                                        data ?? 'Aucune donnée',
+                                        _data ?? 'No data',
                                         style: const TextStyle(
                                           fontFamily: 'SpaceGrotesk',
                                           fontSize: 12,

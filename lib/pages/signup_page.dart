@@ -1,29 +1,75 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:projet2cp/ResetPassword.dart';
-import 'package:projet2cp/bilanpage.dart';
+import 'package:pivert_iot/pages/data_page.dart';
 
-class Loginpage extends StatefulWidget {
-  const Loginpage({Key? key}) : super(key: key);
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({Key? key}) : super(key: key);
 
   @override
-  State<Loginpage> createState() => _LoginpageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _LoginpageState extends State<Loginpage> {
+class _SignUpPageState extends State<SignUpPage> {
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final auth = FirebaseAuth.instance;
+  final _auth = FirebaseAuth.instance;
   bool _isLoading = false;
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Widget buildEmail() {
+  Widget _buildUser() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text(
+          '       Username',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontFamily: 'SpaceGrotesk',
+          ),
+        ),
+        const SizedBox(height: 2),
+        Container(
+          margin: const EdgeInsets.all(16),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5E4D8),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              )
+            ],
+          ),
+          height: 60,
+          child: TextField(
+            controller: _usernameController,
+            keyboardType: TextInputType.name,
+            style: const TextStyle(color: Colors.black87),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.only(top: 14),
+              prefixIcon: Icon(Icons.person, color: Colors.black),
+              hintText: 'Your name',
+              hintStyle: TextStyle(color: Colors.black38),
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildEmail() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -59,7 +105,7 @@ class _LoginpageState extends State<Loginpage> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
-              hintText: 'exemple@email.com',
+              hintText: 'example@email.com',
               hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
@@ -68,12 +114,12 @@ class _LoginpageState extends State<Loginpage> {
     );
   }
 
-  Widget buildPassword() {
+  Widget _buildPassword() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const Text(
-          '       Mot de passe',
+          '       Password',
           style: TextStyle(
             color: Colors.black,
             fontSize: 16,
@@ -104,7 +150,7 @@ class _LoginpageState extends State<Loginpage> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.lock_outline, color: Colors.black),
-              hintText: '••••••••',
+              hintText: 'Min. 6 characters',
               hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
@@ -113,35 +159,12 @@ class _LoginpageState extends State<Loginpage> {
     );
   }
 
-  Widget ForgetPassword() {
+  Widget _buildSignUpButton() {
     return Container(
-      alignment: Alignment.centerLeft,
-      child: TextButton(
-        onPressed: () {
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ResetPassword()),
-            );
-          }
-        },
-        child: const Text(
-          '     Mot de passe oublié ? ',
-          style: TextStyle(
-            color: Color(0xFF00C1C4),
-            fontFamily: 'SpaceGrotesk',
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget LoginButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 25),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       width: 164,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
+        onPressed: _isLoading ? null : _handleSignUp,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFBD7D5A),
           padding: const EdgeInsets.all(15),
@@ -160,7 +183,7 @@ class _LoginpageState extends State<Loginpage> {
                 ),
               )
             : const Text(
-                'Connexion',
+                'Sign Up',
                 style: TextStyle(
                   color: Color(0xFFF4F3E9),
                   fontSize: 18,
@@ -172,20 +195,33 @@ class _LoginpageState extends State<Loginpage> {
     );
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSignUp() async {
     if (!mounted) return;
 
-    // Validation des champs
-    if (_emailController.text.trim().isEmpty ||
+    // Field validation
+    if (_usernameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
-      _showErrorDialog('Veuillez remplir tous les champs');
+      _showErrorDialog('Please fill in all fields');
       return;
     }
 
-    // Validation format email
+    // Username validation
+    if (_usernameController.text.trim().length < 2) {
+      _showErrorDialog('Username must contain at least 2 characters');
+      return;
+    }
+
+    // Email format validation
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(_emailController.text.trim())) {
-      _showErrorDialog('Format d\'email invalide');
+      _showErrorDialog('Invalid email format');
+      return;
+    }
+
+    // Password validation
+    if (_passwordController.text.length < 6) {
+      _showErrorDialog('Password must contain at least 6 characters');
       return;
     }
 
@@ -193,52 +229,100 @@ class _LoginpageState extends State<Loginpage> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await auth.signInWithEmailAndPassword(
+      final userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      if (userCredential.user != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Bilanpage()),
-        );
+      if (userCredential.user != null) {
+        // Update display name
+        await userCredential.user!
+            .updateDisplayName(_usernameController.text.trim());
+
+        // Send verification email
+        try {
+          await userCredential.user!.sendEmailVerification();
+        } catch (e) {
+          debugPrint('Error sending verification email: $e');
+          // Continue even if email sending fails
+        }
+
+        if (mounted) {
+          // Show success message
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 8),
+                  const Text('Success',
+                      style: TextStyle(fontFamily: 'SpaceGrotesk')),
+                ],
+              ),
+              content: const Text(
+                'Account created successfully!\nA verification email has been sent.',
+                style: TextStyle(fontFamily: 'SpaceGrotesk'),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (mounted) {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const DataPage()),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(
+                      color: Color(0xFF00C1C4),
+                      fontFamily: 'SpaceGrotesk',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
-      String message = 'Une erreur est survenue';
+      String message = 'An error occurred';
 
       switch (e.code) {
-        case 'user-not-found':
-          message = 'Aucun utilisateur trouvé avec cet email';
+        case 'weak-password':
+          message = 'Password is too weak';
           break;
-        case 'wrong-password':
-          message = 'Mot de passe incorrect';
+        case 'email-already-in-use':
+          message = 'This email is already in use';
           break;
         case 'invalid-email':
-          message = 'Email invalide';
+          message = 'Invalid email';
           break;
-        case 'user-disabled':
-          message = 'Ce compte a été désactivé';
-          break;
-        case 'too-many-requests':
-          message = 'Trop de tentatives. Réessayez plus tard';
+        case 'operation-not-allowed':
+          message = 'Operation not allowed';
           break;
         case 'network-request-failed':
-          message = 'Erreur réseau. Vérifiez votre connexion';
-          break;
-        case 'invalid-credential':
-          message = 'Email ou mot de passe incorrect';
+          message = 'Network error. Check your connection';
           break;
         default:
-          message = 'Erreur d\'authentification: ${e.message}';
+          message = 'Registration error: ${e.message}';
       }
 
       _showErrorDialog(message);
     } catch (e) {
       if (!mounted) return;
-      _showErrorDialog('Erreur de connexion: ${e.toString()}');
+      _showErrorDialog('Registration error: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -257,7 +341,7 @@ class _LoginpageState extends State<Loginpage> {
           children: [
             const Icon(Icons.error_outline, color: Colors.red),
             const SizedBox(width: 8),
-            const Text('Erreur', style: TextStyle(fontFamily: 'SpaceGrotesk')),
+            const Text('Error', style: TextStyle(fontFamily: 'SpaceGrotesk')),
           ],
         ),
         content: Text(
@@ -298,7 +382,7 @@ class _LoginpageState extends State<Loginpage> {
               ),
             ),
             Container(
-              margin: const EdgeInsets.only(top: 10, right: 50, left: 50),
+              margin: const EdgeInsets.only(right: 50, left: 50),
               child: const Center(
                 child: Text(
                   "Pi-Vert",
@@ -311,14 +395,15 @@ class _LoginpageState extends State<Loginpage> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
-            buildEmail(),
-            const SizedBox(height: 8),
-            buildPassword(),
-            ForgetPassword(),
-            LoginButton(),
+            const SizedBox(height: 21),
+            _buildUser(),
+            const SizedBox(height: 6),
+            _buildEmail(),
+            const SizedBox(height: 6),
+            _buildPassword(),
+            _buildSignUpButton(),
             Container(
-              height: 155,
+              height: 145,
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('Assets/Vector 2.png'),

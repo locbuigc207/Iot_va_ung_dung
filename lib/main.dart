@@ -1,18 +1,18 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:projet2cp/WelcomePage.dart';
+import 'package:pivert_iot/welcome_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khóa orientation ở portrait mode
+  // Lock orientation to portrait mode
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Khởi tạo Firebase với error handling
+  // Initialize Firebase with error handling
   bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp(
@@ -29,7 +29,7 @@ void main() async {
     debugPrint('Firebase initialized successfully');
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
-    // Không throw exception để app vẫn có thể chạy
+    // Don't throw exception to allow app to run
   }
 
   runApp(MyApp(firebaseInitialized: firebaseInitialized));

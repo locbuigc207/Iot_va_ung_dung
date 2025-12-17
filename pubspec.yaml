@@ -1,5 +1,5 @@
-name: projet2cp
-description: A new Flutter project.
+name: pivert_iot
+description: A Flutter plant monitoring application with IoT integration for HUST.
 
 publish_to: 'none'
 
@@ -14,15 +14,15 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # Firebase - Phiên bản tương thích
+  # Firebase - Compatible versions
   firebase_core: ^2.32.0
   firebase_auth: ^4.16.0
   firebase_database: ^10.5.7
   cloud_firestore: ^4.17.5
   firebase_storage: ^11.6.5
 
-  # Charts - SỬ DỤNG PHIÊN BẢN MỚI NHẤT tương thích với Flutter SDK hiện tại
-  syncfusion_flutter_charts: ^27.1.48
+  # Charts - Use latest compatible version
+  syncfusion_flutter_charts: ^27.2.5
 
   # UI & Utils
   provider: ^6.1.5

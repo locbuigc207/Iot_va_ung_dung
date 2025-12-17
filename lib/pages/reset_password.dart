@@ -10,7 +10,7 @@ class ResetPassword extends StatefulWidget {
 
 class _ResetPasswordState extends State<ResetPassword> {
   final TextEditingController _emailController = TextEditingController();
-  final auth = FirebaseAuth.instance;
+  final _auth = FirebaseAuth.instance;
   bool _isLoading = false;
 
   @override
@@ -19,7 +19,7 @@ class _ResetPasswordState extends State<ResetPassword> {
     super.dispose();
   }
 
-  Widget buildEmail() {
+  Widget _buildEmail() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -55,7 +55,7 @@ class _ResetPasswordState extends State<ResetPassword> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14),
               prefixIcon: Icon(Icons.email_outlined, color: Colors.black),
-              hintText: 'exemple@email.com',
+              hintText: 'example@email.com',
               hintStyle: TextStyle(color: Colors.black38),
             ),
           ),
@@ -64,7 +64,7 @@ class _ResetPasswordState extends State<ResetPassword> {
     );
   }
 
-  Widget ResetButton() {
+  Widget _buildResetButton() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       width: 200,
@@ -88,7 +88,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                 ),
               )
             : const Text(
-                'Réinitialiser',
+                'Reset Password',
                 style: TextStyle(
                   color: Color(0xFFF4F3E9),
                   fontSize: 18,
@@ -105,14 +105,14 @@ class _ResetPasswordState extends State<ResetPassword> {
 
     // Validation
     if (_emailController.text.trim().isEmpty) {
-      _showDialog('Erreur', 'Veuillez entrer votre email', isError: true);
+      _showDialog('Error', 'Please enter your email', isError: true);
       return;
     }
 
-    // Validation format email
+    // Email format validation
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(_emailController.text.trim())) {
-      _showDialog('Erreur', 'Format d\'email invalide', isError: true);
+      _showDialog('Error', 'Invalid email format', isError: true);
       return;
     }
 
@@ -120,17 +120,17 @@ class _ResetPasswordState extends State<ResetPassword> {
     setState(() => _isLoading = true);
 
     try {
-      await auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
 
       if (mounted) {
         _showDialog(
-          'Succès',
-          'Un email de réinitialisation a été envoyé à ${_emailController.text.trim()}',
+          'Success',
+          'A password reset email has been sent to ${_emailController.text.trim()}',
           isError: false,
           onOk: () {
             if (mounted) {
-              Navigator.pop(context); // Fermer le dialog
-              Navigator.pop(context); // Retourner à la page précédente
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Return to previous page
             }
           },
         );
@@ -138,32 +138,32 @@ class _ResetPasswordState extends State<ResetPassword> {
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
-      String message = 'Une erreur est survenue';
+      String message = 'An error occurred';
 
       switch (e.code) {
         case 'user-not-found':
-          message = 'Aucun utilisateur trouvé avec cet email';
+          message = 'No user found with this email';
           break;
         case 'invalid-email':
-          message = 'Email invalide';
+          message = 'Invalid email';
           break;
         case 'user-disabled':
-          message = 'Ce compte a été désactivé';
+          message = 'This account has been disabled';
           break;
         case 'too-many-requests':
-          message = 'Trop de tentatives. Réessayez plus tard';
+          message = 'Too many attempts. Please try again later';
           break;
         case 'network-request-failed':
-          message = 'Erreur réseau. Vérifiez votre connexion';
+          message = 'Network error. Check your connection';
           break;
         default:
-          message = 'Erreur: ${e.message}';
+          message = 'Error: ${e.message}';
       }
 
-      _showDialog('Erreur', message, isError: true);
+      _showDialog('Error', message, isError: true);
     } catch (e) {
       if (!mounted) return;
-      _showDialog('Erreur', 'Erreur: ${e.toString()}', isError: true);
+      _showDialog('Error', 'Error: ${e.toString()}', isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -245,7 +245,7 @@ class _ResetPasswordState extends State<ResetPassword> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Réinitialiser le mot de passe',
+              'Reset Password',
               style: TextStyle(
                 color: Color(0xFF084C61),
                 fontFamily: 'SpaceGrotesk',
@@ -257,7 +257,7 @@ class _ResetPasswordState extends State<ResetPassword> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
-                'Entrez votre email pour recevoir un lien de réinitialisation',
+                'Enter your email to receive a reset link',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.black54,
@@ -267,15 +267,15 @@ class _ResetPasswordState extends State<ResetPassword> {
               ),
             ),
             const SizedBox(height: 30),
-            buildEmail(),
+            _buildEmail(),
             const SizedBox(height: 8),
-            ResetButton(),
+            _buildResetButton(),
             TextButton(
               onPressed: () {
                 if (mounted) Navigator.pop(context);
               },
               child: const Text(
-                'Retour à la connexion',
+                'Back to login',
                 style: TextStyle(
                   color: Color(0xFF00C1C4),
                   fontFamily: 'SpaceGrotesk',

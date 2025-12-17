@@ -18,6 +18,8 @@ class Body extends StatelessWidget {
             top: 240,
             child: Image.asset(
               'Assets/sos.png',
+              width: 100,
+              height: 100,
               errorBuilder: (context, error, stackTrace) {
                 return const Icon(
                   Icons.eco,
@@ -46,7 +48,7 @@ class Body extends StatelessWidget {
           const Positioned(
             top: 600,
             child: Text(
-              'Copyright© 2021-2022 ESI Alger',
+              'Copyright© 2021-2022 ESI Algiers',
               style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'SpaceGrotesk',
@@ -60,7 +62,7 @@ class Body extends StatelessWidget {
           const Positioned(
             top: 620,
             child: Text(
-              'Projet 2CP Tout droit réservé',
+              '2CP Project - All Rights Reserved',
               style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'SpaceGrotesk',
