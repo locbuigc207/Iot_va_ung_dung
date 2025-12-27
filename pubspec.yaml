@@ -3,7 +3,7 @@ description: Pi-Vert - A Flutter plant monitoring application with IoT integrati
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -20,13 +20,27 @@ dependencies:
   firebase_database: ^10.5.7
   cloud_firestore: ^4.17.5
   firebase_storage: ^11.6.5
+  firebase_messaging: ^14.9.4  # ✅ NEW: Push notifications
 
   # Charts - Use latest compatible version
   syncfusion_flutter_charts: ^27.2.5
+  fl_chart: ^0.68.0  # ✅ NEW: Alternative charts
 
   # UI & Utils
   provider: ^6.1.5
   intl: ^0.18.1
+
+  # ✅ NEW: Notifications
+  flutter_local_notifications: ^17.2.3
+
+  # ✅ NEW: Permissions
+  permission_handler: ^11.3.1
+
+  # ✅ NEW: Background tasks
+  workmanager: ^0.5.2
+
+  # ✅ NEW: Date/Time utilities
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:
