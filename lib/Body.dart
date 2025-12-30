@@ -48,7 +48,7 @@ class Body extends StatelessWidget {
           const Positioned(
             top: 600,
             child: Text(
-              'Copyright© 2021-2022 ESI Algiers',
+              'Hệ thống tưới cây tự động',
               style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'SpaceGrotesk',
@@ -62,7 +62,7 @@ class Body extends StatelessWidget {
           const Positioned(
             top: 620,
             child: Text(
-              '2CP Project - All Rights Reserved',
+              'Iot và ứng dụng',
               style: TextStyle(
                 color: Colors.black87,
                 fontFamily: 'SpaceGrotesk',
