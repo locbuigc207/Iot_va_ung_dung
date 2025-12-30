@@ -11,7 +11,11 @@ import '../widgets/zone_card.dart';
 import 'add_zone_page.dart';
 import 'leak_detection_page.dart';
 import 'notifications_page.dart';
+import 'plant_library_page.dart';
 import 'schedule_page.dart';
+import 'water_usage_report_page.dart';
+// Thêm import mới
+import 'watering_history_page.dart';
 import 'weather_dashboard_page.dart';
 import 'zone_detail_page.dart';
 import 'zones_page.dart';
@@ -379,7 +383,6 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         backgroundColor: const Color(0xFF00C1C4),
         actions: [
-          // ✅ NEW: Weather Button
           IconButton(
             icon: const Icon(Icons.wb_sunny, color: Colors.white),
             onPressed: () {
@@ -392,7 +395,6 @@ class _HomePageState extends State<HomePage> {
             },
             tooltip: 'Thời tiết',
           ),
-          // Notifications Badge
           IconButton(
             icon: Badge(
               isLabelVisible: _unreadNotifications > 0,
@@ -408,7 +410,6 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          // Leak Detection
           IconButton(
             icon: const Icon(Icons.water_damage, color: Colors.white),
             onPressed: () {
@@ -420,15 +421,83 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          // Logout
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async {
-              await _auth.signOut();
-              if (mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
+          // Dropdown Menu
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              switch (value) {
+                case 'history':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WateringHistoryPage(),
+                    ),
+                  );
+                  break;
+                case 'report':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WaterUsageReportPage(),
+                    ),
+                  );
+                  break;
+                case 'library':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PlantLibraryPage(),
+                    ),
+                  );
+                  break;
+                case 'logout':
+                  _auth.signOut();
+                  Navigator.pushReplacementNamed(context, '/login');
+                  break;
               }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'history',
+                child: Row(
+                  children: [
+                    Icon(Icons.history),
+                    SizedBox(width: 12),
+                    Text('Lịch sử tưới'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.analytics),
+                    SizedBox(width: 12),
+                    Text('Báo cáo tiêu thụ'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'library',
+                child: Row(
+                  children: [
+                    Icon(Icons.local_florist),
+                    SizedBox(width: 12),
+                    Text('Thư viện cây'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 12),
+                    Text('Đăng xuất'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
