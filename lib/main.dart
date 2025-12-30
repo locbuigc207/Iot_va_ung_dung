@@ -5,8 +5,11 @@ import 'package:timezone/data/latest.dart' as tz;
 
 import 'login_screen.dart';
 import 'pages/home_page.dart';
+import 'services/auto_weather_skip_service.dart';
 import 'services/leak_detection_service.dart';
 import 'services/notification_service.dart';
+import 'services/soil_moisture_auto_service.dart';
+import 'services/weather_service.dart';
 import 'welcome_page.dart';
 
 void main() async {
@@ -44,6 +47,32 @@ void main() async {
       debugPrint('✅ NotificationService initialized');
     } catch (e) {
       debugPrint('⚠️ NotificationService initialization error: $e');
+    }
+
+    // ==================== PHASE 3: NEW SERVICES ====================
+
+    // Start Weather Service auto-update
+    try {
+      WeatherService().startAutoUpdate();
+      debugPrint('✅ WeatherService started');
+    } catch (e) {
+      debugPrint('⚠️ WeatherService start error: $e');
+    }
+
+    // Start Auto Weather Skip Service
+    try {
+      await AutoWeatherSkipService().startMonitoring();
+      debugPrint('✅ AutoWeatherSkipService started');
+    } catch (e) {
+      debugPrint('⚠️ AutoWeatherSkipService start error: $e');
+    }
+
+    // Start Soil Moisture Auto Service
+    try {
+      await SoilMoistureAutoService().startMonitoring();
+      debugPrint('✅ SoilMoistureAutoService started');
+    } catch (e) {
+      debugPrint('⚠️ SoilMoistureAutoService start error: $e');
     }
 
     // Start Leak Detection Service

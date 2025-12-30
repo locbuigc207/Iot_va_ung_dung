@@ -585,4 +585,68 @@ class FirebaseService {
       debugPrint('Error adding leak alert: $e');
     }
   }
+
+  // ==================== ✅ SCHEDULE SKIP INFO (for Weather Auto-Skip) ====================
+
+  Future<void> updateScheduleSkipInfo(
+    String scheduleId,
+    Map<String, dynamic> skipInfo,
+  ) async {
+    try {
+      await _db.child('schedule_skip_info/$scheduleId').set(skipInfo);
+      debugPrint('Schedule skip info updated: $scheduleId');
+    } catch (e) {
+      debugPrint('Error updating schedule skip info: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getScheduleSkipInfo(String scheduleId) async {
+    try {
+      final snapshot = await _db.child('schedule_skip_info/$scheduleId').get();
+      if (snapshot.exists) {
+        return Map<String, dynamic>.from(snapshot.value as Map);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting schedule skip info: $e');
+      return null;
+    }
+  }
+
+  Future<void> clearScheduleSkipInfo(String scheduleId) async {
+    try {
+      await _db.child('schedule_skip_info/$scheduleId').remove();
+      debugPrint('Schedule skip info cleared: $scheduleId');
+    } catch (e) {
+      debugPrint('Error clearing schedule skip info: $e');
+    }
+  }
+
+  // ==================== ✅ AUTO WATERING (for Soil Moisture Auto) ====================
+
+  Future<void> updateZoneAutoWatering(String zoneId, bool enabled) async {
+    try {
+      await _db.child('zones/$zoneId').update({
+        'autoWateringEnabled': enabled,
+        'autoWateringUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      debugPrint('Zone auto watering updated: $zoneId = $enabled');
+    } catch (e) {
+      debugPrint('Error updating zone auto watering: $e');
+    }
+  }
+
+  Future<bool> isZoneAutoWateringEnabled(String zoneId) async {
+    try {
+      final snapshot =
+          await _db.child('zones/$zoneId/autoWateringEnabled').get();
+      if (snapshot.exists) {
+        return snapshot.value as bool;
+      }
+      return false; // Default to disabled
+    } catch (e) {
+      debugPrint('Error checking auto watering status: $e');
+      return false;
+    }
+  }
 }

@@ -12,6 +12,7 @@ import 'add_zone_page.dart';
 import 'leak_detection_page.dart';
 import 'notifications_page.dart';
 import 'schedule_page.dart';
+import 'weather_dashboard_page.dart';
 import 'zone_detail_page.dart';
 import 'zones_page.dart';
 
@@ -378,6 +379,19 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         backgroundColor: const Color(0xFF00C1C4),
         actions: [
+          // ✅ NEW: Weather Button
+          IconButton(
+            icon: const Icon(Icons.wb_sunny, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WeatherDashboardPage(),
+                ),
+              );
+            },
+            tooltip: 'Thời tiết',
+          ),
           // Notifications Badge
           IconButton(
             icon: Badge(

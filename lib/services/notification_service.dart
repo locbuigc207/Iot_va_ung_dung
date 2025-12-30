@@ -333,6 +333,114 @@ class NotificationService {
     await _firebaseService.addNotification(notification);
   }
 
+  // ==================== ✅ NEW NOTIFICATION TYPES ====================
+
+  // Send notification when schedule is skipped due to weather
+  Future<void> notifyScheduleSkipped({
+    required String zoneName,
+    required String scheduledTime,
+    required String reason,
+  }) async {
+    await _showLocalNotification(
+      title: '🌧️ Lịch trình bị bỏ qua',
+      body: 'Lịch tưới $zoneName lúc $scheduledTime đã bị hủy. Lý do: $reason',
+    );
+
+    // Save to Firebase
+    final notification = NotificationModel(
+      id: '',
+      userId: _firebaseService.currentUserId ?? '',
+      type: NotificationType.scheduleStart,
+      title: 'Lịch trình bị bỏ qua',
+      message:
+          'Lịch tưới $zoneName lúc $scheduledTime đã bị hủy. Lý do: $reason',
+      timestamp: DateTime.now(),
+      priority: NotificationPriority.medium,
+      zoneName: zoneName,
+    );
+
+    await _firebaseService.addNotification(notification);
+  }
+
+  // Send notification when schedule is re-enabled after weather clears
+  Future<void> notifyScheduleReEnabled({
+    required String zoneName,
+    required String scheduledTime,
+  }) async {
+    await _showLocalNotification(
+      title: '✅ Lịch trình được kích hoạt lại',
+      body:
+          'Lịch tưới $zoneName lúc $scheduledTime đã được bật lại sau khi thời tiết tốt.',
+    );
+
+    // Save to Firebase
+    final notification = NotificationModel(
+      id: '',
+      userId: _firebaseService.currentUserId ?? '',
+      type: NotificationType.scheduleStart,
+      title: 'Lịch trình được kích hoạt lại',
+      message: 'Lịch tưới $zoneName lúc $scheduledTime đã được bật lại',
+      timestamp: DateTime.now(),
+      priority: NotificationPriority.low,
+      zoneName: zoneName,
+    );
+
+    await _firebaseService.addNotification(notification);
+  }
+
+  // Send notification when auto watering starts
+  Future<void> notifyAutoWateringStarted({
+    required String zoneName,
+    required int duration,
+    required String reason,
+  }) async {
+    await _showLocalNotification(
+      title: '💧 Tự động tưới',
+      body:
+          'Bắt đầu tự động tưới $zoneName trong $duration phút. Lý do: $reason',
+    );
+
+    // Save to Firebase
+    final notification = NotificationModel(
+      id: '',
+      userId: _firebaseService.currentUserId ?? '',
+      type: NotificationType.wateringStart,
+      title: 'Tự động tưới',
+      message:
+          'Bắt đầu tự động tưới $zoneName trong $duration phút. Lý do: $reason',
+      timestamp: DateTime.now(),
+      priority: NotificationPriority.high,
+      zoneName: zoneName,
+    );
+
+    await _firebaseService.addNotification(notification);
+  }
+
+  // Send notification when auto watering is skipped
+  Future<void> notifyAutoWateringSkipped({
+    required String zoneName,
+    required String reason,
+  }) async {
+    await _showLocalNotification(
+      title: 'ℹ️ Bỏ qua tự động tưới',
+      body: 'Tự động tưới $zoneName bị bỏ qua. Lý do: $reason',
+    );
+
+    // Save to Firebase
+    final notification = NotificationModel(
+      id: '',
+      userId: _firebaseService.currentUserId ?? '',
+      type: NotificationType.info,
+      title: 'Bỏ qua tự động tưới',
+      message: 'Tự động tưới $zoneName bị bỏ qua. Lý do: $reason',
+      timestamp: DateTime.now(),
+      priority: NotificationPriority.low,
+      zoneName: zoneName,
+    );
+
+    await _firebaseService.addNotification(notification);
+  }
+
   // Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
     debugPrint('Notification tapped: ${response.payload}');

@@ -3,7 +3,7 @@ description: Pi-Vert - A Flutter plant monitoring application with IoT integrati
 
 publish_to: 'none'
 
-version: 2.0.0+2
+version: 2.1.0+3
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -36,9 +36,11 @@ dependencies:
   # Permissions
   permission_handler: ^11.3.1
 
-
   # Timezone (cho notifications)
   timezone: ^0.9.4
+
+  # HTTP (for Weather API) - PHASE 3
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

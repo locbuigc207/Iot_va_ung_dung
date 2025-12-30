@@ -7,6 +7,7 @@ import '../models/device_model.dart';
 import '../models/schedule_model.dart';
 import '../models/zone_model.dart';
 import '../services/firebase_service.dart';
+import '../services/soil_moisture_auto_service.dart';
 import '../widgets/control_button.dart';
 import '../widgets/schedule_item.dart';
 import 'add_schedule_page.dart';
@@ -36,11 +37,16 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
   StreamSubscription? _schedulesSubscription;
   bool _isLoading = false;
 
+  // Auto watering state
+  bool _autoWateringEnabled = false;
+  bool _loadingAutoWatering = false;
+
   @override
   void initState() {
     super.initState();
     _device = widget.device;
     _loadDeviceAndSchedules();
+    _loadAutoWateringStatus();
   }
 
   void _loadDeviceAndSchedules() {
@@ -64,6 +70,16 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
       if (!mounted) return;
       setState(() => _schedules = schedules);
     });
+  }
+
+  Future<void> _loadAutoWateringStatus() async {
+    final enabled =
+        await FirebaseService().isZoneAutoWateringEnabled(widget.zone.id);
+    if (mounted) {
+      setState(() {
+        _autoWateringEnabled = enabled;
+      });
+    }
   }
 
   void _startCountdownTimer() {
@@ -138,6 +154,60 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
       _showErrorSnackBar('Có lỗi xảy ra: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleAutoWatering(bool value) async {
+    setState(() {
+      _loadingAutoWatering = true;
+    });
+
+    try {
+      if (value) {
+        await SoilMoistureAutoService().enableAutoWatering(widget.zone.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Đã bật tưới tự động theo độ ẩm'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        await SoilMoistureAutoService().disableAutoWatering(widget.zone.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã tắt tưới tự động theo độ ẩm'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _autoWateringEnabled = value;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error toggling auto watering: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('❌ Lỗi: Không thể ${value ? "bật" : "tắt"} tưới tự động'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingAutoWatering = false;
+        });
+      }
     }
   }
 
@@ -449,6 +519,11 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
             // Last Watered
             if (widget.zone.lastWatered != null) _buildLastWateredCard(),
 
+            // Auto Watering Section
+            _buildAutoWateringCard(),
+
+            const SizedBox(height: 16),
+
             // Schedules Section
             Padding(
               padding: const EdgeInsets.all(16),
@@ -535,6 +610,105 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
               }).toList(),
 
             const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAutoWateringCard() {
+    return Card(
+      margin: const EdgeInsets.all(16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00C1C4).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.water_drop,
+                    color: Color(0xFF00C1C4),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Tưới tự động',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Hệ thống sẽ tự động tưới khi độ ẩm đất thấp hơn ngưỡng đã đặt',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text(
+                'Kích hoạt tưới tự động theo độ ẩm',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                _autoWateringEnabled
+                    ? 'Đang bật - Hệ thống sẽ tự động tưới khi cần'
+                    : 'Đang tắt - Chỉ tưới theo lịch trình',
+                style: TextStyle(
+                  color: _autoWateringEnabled ? Colors.green : Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+              value: _autoWateringEnabled,
+              onChanged: _loadingAutoWatering ? null : _toggleAutoWatering,
+              activeColor: const Color(0xFF00C1C4),
+              contentPadding: EdgeInsets.zero,
+            ),
+            if (!_autoWateringEnabled)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange[700],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Cần có cảm biến độ ẩm đất và đặt ngưỡng để sử dụng tính năng này',
+                        style: TextStyle(
+                          color: Colors.orange[700],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
