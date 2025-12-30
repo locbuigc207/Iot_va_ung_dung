@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/schedule_model.dart';
-import 'firebase_service.dart';
-import 'notification_service.dart';
-import 'weather_service.dart';
+import '../services/firebase_service.dart';
+import '../services/notification_service.dart';
+import '../services/weather_service.dart';
 
 class AutoWeatherSkipService {
   static final AutoWeatherSkipService _instance =

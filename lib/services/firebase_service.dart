@@ -10,6 +10,7 @@ import '../models/notification_model.dart';
 import '../models/schedule_model.dart';
 import '../models/sensor_model.dart';
 import '../models/sensor_reading_model.dart';
+import '../models/watering_history_model.dart';
 import '../models/zone_model.dart';
 
 class FirebaseService {
@@ -647,6 +648,142 @@ class FirebaseService {
     } catch (e) {
       debugPrint('Error checking auto watering status: $e');
       return false;
+    }
+  }
+
+  // ==================== ✅ PHASE 4: WATERING HISTORY ====================
+
+  Stream<List<WateringHistoryModel>> getWateringHistoryStream({
+    String? zoneId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    final start =
+        startDate ?? DateTime.now().subtract(const Duration(days: 30));
+    final end = endDate ?? DateTime.now();
+
+    Query query = _db.child('watering_history');
+
+    if (zoneId != null) {
+      query = query.orderByChild('zoneId').equalTo(zoneId);
+    }
+
+    return query.onValue.map((event) {
+      final history = <WateringHistoryModel>[];
+      if (event.snapshot.value != null) {
+        final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+        data.forEach((key, value) {
+          final record = WateringHistoryModel.fromMap(value, key);
+          if (record.startTime.isAfter(start) &&
+              record.startTime.isBefore(end)) {
+            history.add(record);
+          }
+        });
+      }
+      history.sort((a, b) => b.startTime.compareTo(a.startTime));
+      return history;
+    });
+  }
+
+  Stream<List<WateringHistoryModel>> getAllWateringHistoryStream({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    return getWateringHistoryStream(startDate: startDate, endDate: endDate);
+  }
+
+  Future<void> logWateringHistory(WateringHistoryModel history) async {
+    try {
+      final ref = _db.child('watering_history').push();
+      await ref.set(history.toMap());
+      debugPrint('Watering history logged: ${history.zoneName}');
+    } catch (e) {
+      debugPrint('Error logging history: $e');
+    }
+  }
+
+  // ==================== ✅ PHASE 4: PLANT LIBRARY ====================
+
+  Stream<List<PlantProfileModel>> getAllPlantProfilesStream() {
+    return _db.child('plant_library').onValue.map((event) {
+      final plants = <PlantProfileModel>[];
+      if (event.snapshot.value != null) {
+        final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+        data.forEach((key, value) {
+          plants.add(PlantProfileModel.fromMap(value, key));
+        });
+      }
+      return plants;
+    });
+  }
+
+  Stream<List<PlantProfileModel>> getPlantProfilesByCategoryStream(
+      String category) {
+    return _db
+        .child('plant_library')
+        .orderByChild('category')
+        .equalTo(category)
+        .onValue
+        .map((event) {
+      final plants = <PlantProfileModel>[];
+      if (event.snapshot.value != null) {
+        final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+        data.forEach((key, value) {
+          plants.add(PlantProfileModel.fromMap(value, key));
+        });
+      }
+      return plants;
+    });
+  }
+
+  Future<PlantProfileModel?> getPlantProfile(String plantId) async {
+    try {
+      final snapshot = await _db.child('plant_library/$plantId').get();
+      if (snapshot.exists) {
+        return PlantProfileModel.fromMap(
+          Map<dynamic, dynamic>.from(snapshot.value as Map),
+          plantId,
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting plant profile: $e');
+      return null;
+    }
+  }
+
+  Future<void> addPlantProfile(PlantProfileModel plant) async {
+    try {
+      await _db.child('plant_library/${plant.id}').set(plant.toMap());
+      debugPrint('Plant profile added: ${plant.name}');
+    } catch (e) {
+      debugPrint('Error adding plant profile: $e');
+    }
+  }
+
+  // ==================== ✅ PHASE 4: ZONE PROFILES ====================
+
+  Future<ZoneProfileModel?> getZoneProfile(String zoneId) async {
+    try {
+      final snapshot = await _db.child('zone_profiles/$zoneId').get();
+      if (snapshot.exists) {
+        return ZoneProfileModel.fromMap(
+          Map<dynamic, dynamic>.from(snapshot.value as Map),
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting zone profile: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveZoneProfile(ZoneProfileModel profile) async {
+    try {
+      await _db.child('zone_profiles/${profile.zoneId}').set(profile.toMap());
+      debugPrint('Zone profile saved: ${profile.zoneId}');
+    } catch (e) {
+      debugPrint('Error saving zone profile: $e');
     }
   }
 }

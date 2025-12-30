@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../models/sensor_model.dart';
 import '../models/zone_model.dart';
-import 'firebase_service.dart';
-import 'notification_service.dart';
-import 'weather_service.dart';
+import '../services/firebase_service.dart';
+import '../services/notification_service.dart';
+import '../services/weather_service.dart';
 
 class SoilMoistureAutoService {
   static final SoilMoistureAutoService _instance =
