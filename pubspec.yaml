@@ -16,30 +16,28 @@ dependencies:
 
   # Firebase - Compatible versions
   firebase_core: ^2.32.0
-  firebase_auth: ^4.16.0
+  firebase_auth: ^4.20.0
   firebase_database: ^10.5.7
   cloud_firestore: ^4.17.5
-  firebase_storage: ^11.6.5
-  firebase_messaging: ^14.9.4  # ✅ NEW: Push notifications
+  firebase_storage: ^11.7.7
+  firebase_messaging: ^14.9.4
 
-  # Charts - Use latest compatible version
+  # Charts
   syncfusion_flutter_charts: ^27.2.5
-  fl_chart: ^0.68.0  # ✅ NEW: Alternative charts
+  fl_chart: ^0.68.0
 
   # UI & Utils
   provider: ^6.1.5
   intl: ^0.18.1
 
-  # ✅ NEW: Notifications
+  # Notifications
   flutter_local_notifications: ^17.2.3
 
-  # ✅ NEW: Permissions
+  # Permissions
   permission_handler: ^11.3.1
 
-  # ✅ NEW: Background tasks
-  workmanager: ^0.5.2
 
-  # ✅ NEW: Date/Time utilities
+  # Timezone (cho notifications)
   timezone: ^0.9.4
 
 dev_dependencies:

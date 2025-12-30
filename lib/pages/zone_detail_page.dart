@@ -10,6 +10,7 @@ import '../services/firebase_service.dart';
 import '../widgets/control_button.dart';
 import '../widgets/schedule_item.dart';
 import 'add_schedule_page.dart';
+import 'sensor_dashboard_page.dart';
 
 class ZoneDetailPage extends StatefulWidget {
   final ZoneModel zone;
@@ -43,7 +44,6 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
   }
 
   void _loadDeviceAndSchedules() {
-    // Listen to device updates
     _deviceSubscription?.cancel();
     _deviceSubscription =
         _firebaseService.getDeviceStream(widget.zone.id).listen((device) {
@@ -58,7 +58,6 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
       });
     });
 
-    // Listen to schedules
     _schedulesSubscription?.cancel();
     _schedulesSubscription =
         _firebaseService.getSchedulesStream(widget.zone.id).listen((schedules) {
@@ -90,7 +89,6 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
           await _firebaseService.controlDevice(_device!.id, false);
           timer.cancel();
 
-          // Log watering event
           await _firebaseService.logWateringEvent(
             zoneId: widget.zone.id,
             zoneName: widget.zone.name,
@@ -125,7 +123,6 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
       } else {
         await _firebaseService.controlDevice(_device!.id, false);
 
-        // Log event if was watering
         if (_device!.isWatering && _device!.startTime != null) {
           final actualDuration =
               DateTime.now().difference(_device!.startTime!).inMinutes;
@@ -412,6 +409,40 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
               ),
             ),
 
+            // Action Buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                SensorDashboardPage(zone: widget.zone),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.sensors, size: 20),
+                      label: const Text('Sensors'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00C1C4),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Zone Info Card
             _buildInfoCard(),
 
@@ -496,9 +527,7 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
                       enabled,
                     );
                   },
-                  onTap: () {
-                    // TODO: Navigate to edit schedule
-                  },
+                  onTap: () {},
                   onDelete: () async {
                     await _firebaseService.deleteSchedule(schedule.id);
                   },

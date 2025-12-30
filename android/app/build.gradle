@@ -29,6 +29,8 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+        // ✅ ENABLE DESUGARING - FIX LỖI
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
@@ -61,12 +63,19 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.20"
+
+    // Firebase
     implementation platform('com.google.firebase:firebase-bom:33.0.0')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-database'
+
+    // MultiDex
     implementation "androidx.multidex:multidex:2.0.1"
+
+    // ✅ DESUGARING LIBRARY - BẮT BUỘC
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 }
 
 apply plugin: 'com.google.gms.google-services'

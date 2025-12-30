@@ -9,6 +9,8 @@ import '../services/firebase_service.dart';
 import '../widgets/control_button.dart';
 import '../widgets/zone_card.dart';
 import 'add_zone_page.dart';
+import 'leak_detection_page.dart';
+import 'notifications_page.dart';
 import 'schedule_page.dart';
 import 'zone_detail_page.dart';
 import 'zones_page.dart';
@@ -29,11 +31,13 @@ class _HomePageState extends State<HomePage> {
   Map<String, DeviceModel> _devices = {};
   Map<String, StreamSubscription> _deviceSubscriptions = {};
   Map<String, Timer> _countdownTimers = {};
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     _loadZones();
+    _loadNotifications();
   }
 
   void _loadZones() {
@@ -43,12 +47,10 @@ class _HomePageState extends State<HomePage> {
         _zones = zones;
       });
 
-      // Load devices for each zone
       for (var zone in zones) {
         _loadDeviceForZone(zone.id);
       }
 
-      // Clean up subscriptions for removed zones
       final zoneIds = zones.map((z) => z.id).toSet();
       _deviceSubscriptions.keys.toList().forEach((id) {
         if (!zoneIds.contains(id)) {
@@ -57,6 +59,15 @@ class _HomePageState extends State<HomePage> {
           _countdownTimers[id]?.cancel();
           _countdownTimers.remove(id);
         }
+      });
+    });
+  }
+
+  void _loadNotifications() {
+    _firebaseService.getNotificationsStream().listen((notifications) {
+      if (!mounted) return;
+      setState(() {
+        _unreadNotifications = notifications.where((n) => !n.isRead).length;
       });
     });
   }
@@ -70,7 +81,6 @@ class _HomePageState extends State<HomePage> {
         if (device != null) {
           _devices[zoneId] = device;
 
-          // Start countdown timer if watering
           if (device.isWatering) {
             _startCountdownTimer(zoneId, device);
           } else {
@@ -102,12 +112,10 @@ class _HomePageState extends State<HomePage> {
         final newDuration = currentDevice.currentDuration! - 1;
 
         if (newDuration <= 0) {
-          // Time's up - turn off device
           await _firebaseService.controlDevice(currentDevice.id, false);
           timer.cancel();
           _countdownTimers.remove(zoneId);
 
-          // Log watering event
           final zone = _zones.firstWhere((z) => z.id == zoneId);
           await _firebaseService.logWateringEvent(
             zoneId: zoneId,
@@ -116,7 +124,6 @@ class _HomePageState extends State<HomePage> {
             source: 'manual',
           );
         } else {
-          // Update duration
           await _firebaseService.updateDeviceDuration(
             currentDevice.id,
             newDuration,
@@ -131,7 +138,6 @@ class _HomePageState extends State<HomePage> {
     if (device == null) return;
 
     if (turnOn) {
-      // Show duration picker
       final duration = await _showDurationPicker();
       if (duration == null) return;
 
@@ -145,11 +151,9 @@ class _HomePageState extends State<HomePage> {
         _showErrorSnackBar('Không thể bật thiết bị');
       }
     } else {
-      // Turn off immediately
       final success = await _firebaseService.controlDevice(device.id, false);
 
       if (success) {
-        // Log watering event if was running
         if (device.isWatering && device.startTime != null) {
           final zone = _zones.firstWhere((z) => z.id == zoneId);
           final actualDuration =
@@ -168,7 +172,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<int?> _showDurationPicker() async {
-    int selectedDuration = 10; // Default 10 minutes
+    int selectedDuration = 10;
 
     return showDialog<int>(
       context: context,
@@ -374,6 +378,35 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         backgroundColor: const Color(0xFF00C1C4),
         actions: [
+          // Notifications Badge
+          IconButton(
+            icon: Badge(
+              isLabelVisible: _unreadNotifications > 0,
+              label: Text('$_unreadNotifications'),
+              child: const Icon(Icons.notifications, color: Colors.white),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsPage(),
+                ),
+              );
+            },
+          ),
+          // Leak Detection
+          IconButton(
+            icon: const Icon(Icons.water_damage, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LeakDetectionPage(),
+                ),
+              );
+            },
+          ),
+          // Logout
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {

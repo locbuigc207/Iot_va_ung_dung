@@ -1,9 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hust_iot/login_screen.dart';
-import 'package:hust_iot/pages/home_page.dart';
-import 'package:hust_iot/welcome_page.dart';
+import 'package:timezone/data/latest.dart' as tz;
+
+import 'login_screen.dart';
+import 'pages/home_page.dart';
+import 'services/leak_detection_service.dart';
+import 'services/notification_service.dart';
+import 'welcome_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +17,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Initialize timezone data
+  tz.initializeTimeZones();
 
   // Initialize Firebase with error handling
   bool firebaseInitialized = false;
@@ -29,10 +36,25 @@ void main() async {
       ),
     );
     firebaseInitialized = true;
-    debugPrint('Firebase initialized successfully');
+    debugPrint('✅ Firebase initialized successfully');
+
+    // Initialize Notification Service
+    try {
+      await NotificationService().initialize();
+      debugPrint('✅ NotificationService initialized');
+    } catch (e) {
+      debugPrint('⚠️ NotificationService initialization error: $e');
+    }
+
+    // Start Leak Detection Service
+    try {
+      LeakDetectionService().startMonitoring();
+      debugPrint('✅ LeakDetectionService started');
+    } catch (e) {
+      debugPrint('⚠️ LeakDetectionService start error: $e');
+    }
   } catch (e) {
-    debugPrint('Firebase initialization error: $e');
-    // Don't throw exception to allow app to run
+    debugPrint('❌ Firebase initialization error: $e');
   }
 
   runApp(MyApp(firebaseInitialized: firebaseInitialized));
