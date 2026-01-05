@@ -35,7 +35,7 @@ void main() async {
         messagingSenderId: '526952035891',
         projectId: 'flutter-chat-app-3e625',
         databaseURL:
-            'https://flutter-chat-app-3e625-default-rtdb.firebaseio.com',
+            'https://flutter-chat-app-3e625-default-rtdb.asia-southeast1.firebasedatabase.app',
         storageBucket: 'flutter-chat-app-3e625.firebasestorage.app',
       ),
     );
