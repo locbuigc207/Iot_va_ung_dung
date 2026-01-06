@@ -15,7 +15,6 @@ import 'notifications_page.dart';
 import 'plant_library_page.dart';
 import 'schedule_page.dart';
 import 'water_usage_report_page.dart';
-// Thêm import mới
 import 'watering_history_page.dart';
 import 'weather_dashboard_page.dart';
 import 'zone_detail_page.dart';
@@ -36,7 +35,6 @@ class _HomePageState extends State<HomePage> {
   List<ZoneModel> _zones = [];
   Map<String, DeviceModel> _devices = {};
   Map<String, StreamSubscription> _deviceSubscriptions = {};
-  Map<String, Timer> _countdownTimers = {};
   int _unreadNotifications = 0;
 
   @override
@@ -62,8 +60,6 @@ class _HomePageState extends State<HomePage> {
         if (!zoneIds.contains(id)) {
           _deviceSubscriptions[id]?.cancel();
           _deviceSubscriptions.remove(id);
-          _countdownTimers[id]?.cancel();
-          _countdownTimers.remove(id);
         }
       });
     });
@@ -86,57 +82,10 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         if (device != null) {
           _devices[zoneId] = device;
-
-          if (device.isWatering) {
-            _startCountdownTimer(zoneId, device);
-          } else {
-            _countdownTimers[zoneId]?.cancel();
-            _countdownTimers.remove(zoneId);
-          }
+          // Arduino handles countdown, Flutter just displays currentDuration
         }
       });
     });
-  }
-
-  void _startCountdownTimer(String zoneId, DeviceModel device) {
-    _countdownTimers[zoneId]?.cancel();
-
-    if (device.currentDuration == null || device.currentDuration! <= 0) return;
-
-    _countdownTimers[zoneId] = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) async {
-        final currentDevice = _devices[zoneId];
-        if (currentDevice == null ||
-            currentDevice.currentDuration == null ||
-            currentDevice.currentDuration! <= 0) {
-          timer.cancel();
-          _countdownTimers.remove(zoneId);
-          return;
-        }
-
-        final newDuration = currentDevice.currentDuration! - 1;
-
-        if (newDuration <= 0) {
-          await _firebaseService.controlDevice(currentDevice.id, false);
-          timer.cancel();
-          _countdownTimers.remove(zoneId);
-
-          final zone = _zones.firstWhere((z) => z.id == zoneId);
-          await _firebaseService.logWateringEvent(
-            zoneId: zoneId,
-            zoneName: zone.name,
-            duration: device.currentDuration! ~/ 60,
-            source: 'manual',
-          );
-        } else {
-          await _firebaseService.updateDeviceDuration(
-            currentDevice.id,
-            newDuration,
-          );
-        }
-      },
-    );
   }
 
   Future<void> _toggleDevice(String zoneId, bool turnOn) async {
@@ -434,7 +383,6 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          // Dropdown Menu
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
@@ -849,7 +797,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _deviceSubscriptions.values.forEach((sub) => sub.cancel());
-    _countdownTimers.values.forEach((timer) => timer.cancel());
     super.dispose();
   }
 }

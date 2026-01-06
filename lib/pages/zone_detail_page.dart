@@ -32,7 +32,6 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
 
   DeviceModel? _device;
   List<ScheduleModel> _schedules = [];
-  Timer? _countdownTimer;
   StreamSubscription? _deviceSubscription;
   StreamSubscription? _schedulesSubscription;
   bool _isLoading = false;
@@ -56,11 +55,7 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
       if (!mounted) return;
       setState(() {
         _device = device;
-        if (device?.isWatering == true) {
-          _startCountdownTimer();
-        } else {
-          _countdownTimer?.cancel();
-        }
+        // Arduino handles countdown automatically, just update UI
       });
     });
 
@@ -82,44 +77,66 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
     }
   }
 
-  void _startCountdownTimer() {
-    _countdownTimer?.cancel();
-
-    if (_device == null ||
-        _device!.currentDuration == null ||
-        _device!.currentDuration! <= 0) return;
-
-    _countdownTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) async {
-        if (_device == null ||
-            _device!.currentDuration == null ||
-            _device!.currentDuration! <= 0) {
-          timer.cancel();
-          return;
-        }
-
-        final newDuration = _device!.currentDuration! - 1;
-
-        if (newDuration <= 0) {
-          await _firebaseService.controlDevice(_device!.id, false);
-          timer.cancel();
-
-          await _firebaseService.logWateringEvent(
-            zoneId: widget.zone.id,
-            zoneName: widget.zone.name,
-            duration: _device!.currentDuration! ~/ 60,
-            source: 'manual',
-          );
-        } else {
-          await _firebaseService.updateDeviceDuration(_device!.id, newDuration);
-        }
-      },
-    );
-  }
-
   Future<void> _toggleDevice(bool turnOn) async {
     if (_device == null) return;
+
+    // Check if device is in forced auto mode and trying to turn on manually
+    if (turnOn && _device!.forcedAuto) {
+      _showErrorSnackBar(
+          'Không thể bật thủ công. Thiết bị đang ở chế độ tự động bắt buộc do độ ẩm đất thấp.');
+      return;
+    }
+
+    // Check if device is in auto mode and trying to control manually
+    if (_device!.mode == 'auto' && !_device!.forcedAuto) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Thiết bị đang ở chế độ tự động',
+            style: TextStyle(fontFamily: 'SpaceGrotesk'),
+          ),
+          content: const Text(
+            'Bạn có muốn chuyển sang chế độ thủ công để điều khiển?',
+            style: TextStyle(fontFamily: 'SpaceGrotesk'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontFamily: 'SpaceGrotesk',
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00C1C4),
+              ),
+              child: const Text(
+                'Chuyển sang thủ công',
+                style: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        await _firebaseService.setDeviceMode(_device!.id, 'manual');
+      } else {
+        return;
+      }
+    }
 
     setState(() => _isLoading = true);
 
@@ -152,6 +169,94 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
       }
     } catch (e) {
       _showErrorSnackBar('Có lỗi xảy ra: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleMode() async {
+    if (_device == null) return;
+
+    // Cannot toggle if forced auto
+    if (_device!.forcedAuto) {
+      _showErrorSnackBar(
+          'Không thể chuyển mode. Thiết bị đang bị khóa ở chế độ tự động do độ ẩm đất quá thấp.');
+      return;
+    }
+
+    final newMode = _device!.mode == 'manual' ? 'auto' : 'manual';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Chuyển sang ${newMode == "manual" ? "Thủ công" : "Tự động"}?',
+          style: const TextStyle(fontFamily: 'SpaceGrotesk'),
+        ),
+        content: Text(
+          newMode == 'manual'
+              ? 'Bạn sẽ phải bật/tắt bơm thủ công. Hệ thống sẽ không tự động tưới theo độ ẩm đất.'
+              : 'Hệ thống sẽ tự động tưới khi độ ẩm đất thấp hơn ngưỡng.',
+          style: const TextStyle(fontFamily: 'SpaceGrotesk'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Colors.grey, fontFamily: 'SpaceGrotesk'),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00C1C4),
+            ),
+            child: const Text(
+              'Chuyển',
+              style: TextStyle(
+                fontFamily: 'SpaceGrotesk',
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success =
+          await _firebaseService.setDeviceMode(_device!.id, newMode);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Đã chuyển sang chế độ ${newMode == "manual" ? "thủ công" : "tự động"}'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        throw Exception('Không thể chuyển mode');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -383,7 +488,7 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status Card
+            // Status Card with Mode Switcher
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
@@ -408,6 +513,94 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
               ),
               child: Column(
                 children: [
+                  // Mode Selector
+                  if (_device != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _device!.getModeIcon(),
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _device!.getModeDisplayText(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'SpaceGrotesk',
+                            ),
+                          ),
+                          const Spacer(),
+                          // Mode Switch Button (only if not forced auto)
+                          if (!_device!.forcedAuto)
+                            TextButton.icon(
+                              onPressed: _toggleMode,
+                              icon: const Icon(
+                                Icons.swap_horiz,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: Text(
+                                _device!.mode == 'manual'
+                                    ? 'Chuyển Auto'
+                                    : 'Chuyển Manual',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontFamily: 'SpaceGrotesk',
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                              ),
+                            )
+                          else
+                            // Warning if forced auto
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.warning_amber,
+                                      color: Colors.white, size: 16),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Độ ẩm thấp',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontFamily: 'SpaceGrotesk',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Status display
                   Row(
                     children: [
                       Text(
@@ -423,7 +616,7 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
                               _device?.getStatusText() ?? 'Không có thiết bị',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'SpaceGrotesk',
                               ),
@@ -467,13 +660,49 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  if (_device != null)
+
+                  // Control button (only show in manual mode or when turning off)
+                  if (_device != null &&
+                      (_device!.mode == 'manual' || isActive))
                     ControlButton(
                       label: isActive ? 'Tắt ngay' : 'Bật tưới',
                       icon: isActive ? Icons.power_off : Icons.power,
                       isActive: isActive,
                       onPressed: () => _toggleDevice(!isActive),
                       isLoading: _isLoading,
+                    ),
+
+                  // Info message for auto mode
+                  if (_device != null && _device!.mode == 'auto' && !isActive)
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _device!.forcedAuto
+                                  ? 'Thiết bị tự động tưới khi độ ẩm < ngưỡng (Bắt buộc)'
+                                  : 'Thiết bị sẽ tự động tưới khi độ ẩm đất thấp',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontFamily: 'SpaceGrotesk',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -859,7 +1088,6 @@ class _ZoneDetailPageState extends State<ZoneDetailPage> {
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
     _deviceSubscription?.cancel();
     _schedulesSubscription?.cancel();
     super.dispose();

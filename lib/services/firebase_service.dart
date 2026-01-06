@@ -53,10 +53,10 @@ class FirebaseService {
       final zoneWithId = zone.copyWith();
       await ref.set(zoneWithId.toMap());
       debugPrint(
-          ' Zone added: ${ref.key} (waiting for ESP32 to register device)');
+          '✅ Zone added: ${ref.key} (waiting for ESP32 to register device)');
       return ref.key;
     } catch (e) {
-      debugPrint('Error adding zone: $e');
+      debugPrint('❌ Error adding zone: $e');
       return null;
     }
   }
@@ -64,10 +64,10 @@ class FirebaseService {
   Future<bool> updateZone(ZoneModel zone) async {
     try {
       await _db.child('zones/${zone.id}').update(zone.toMap());
-      debugPrint('Zone updated: ${zone.id}');
+      debugPrint('✅ Zone updated: ${zone.id}');
       return true;
     } catch (e) {
-      debugPrint('Error updating zone: $e');
+      debugPrint('❌ Error updating zone: $e');
       return false;
     }
   }
@@ -104,7 +104,6 @@ class FirebaseService {
         }
       }
 
-      // ✅ NEW: Delete sensors
       final sensorsSnapshot = await _db
           .child('sensors')
           .orderByChild('zoneId')
@@ -119,10 +118,10 @@ class FirebaseService {
         }
       }
 
-      debugPrint('Zone deleted: $zoneId');
+      debugPrint('✅ Zone deleted: $zoneId');
       return true;
     } catch (e) {
-      debugPrint('Error deleting zone: $e');
+      debugPrint('❌ Error deleting zone: $e');
       return false;
     }
   }
@@ -149,9 +148,9 @@ class FirebaseService {
         'deviceId': deviceId,
         'lastUpdated': DateTime.now().millisecondsSinceEpoch,
       });
-      debugPrint(' Device $deviceId linked to zone $zoneId');
+      debugPrint('✅ Device $deviceId linked to zone $zoneId');
     } catch (e) {
-      debugPrint(' Error linking device to zone: $e');
+      debugPrint('❌ Error linking device to zone: $e');
       rethrow;
     }
   }
@@ -163,9 +162,9 @@ class FirebaseService {
         'autoWateringUpdatedAt': DateTime.now().millisecondsSinceEpoch,
       });
       debugPrint(
-          ' Auto watering ${enabled ? "enabled" : "disabled"} for zone $zoneId');
+          '✅ Auto watering ${enabled ? "enabled" : "disabled"} for zone $zoneId');
     } catch (e) {
-      debugPrint(' Error toggling auto watering: $e');
+      debugPrint('❌ Error toggling auto watering: $e');
       rethrow;
     }
   }
@@ -211,10 +210,12 @@ class FirebaseService {
         entry.key,
       );
     } catch (e) {
-      debugPrint(' Error getting device by MAC: $e');
+      debugPrint('❌ Error getting device by MAC: $e');
       return null;
     }
   }
+
+  // ==================== DEVICE CONTROL ====================
 
   Future<bool> controlDevice(String deviceId, bool turnOn,
       {int? duration}) async {
@@ -235,10 +236,10 @@ class FirebaseService {
       }
 
       await _db.child('devices/$deviceId').update(updates);
-      debugPrint('Device ${turnOn ? "turned ON" : "turned OFF"}: $deviceId');
+      debugPrint('✅ Device ${turnOn ? "turned ON" : "turned OFF"}: $deviceId');
       return true;
     } catch (e) {
-      debugPrint('Error controlling device: $e');
+      debugPrint('❌ Error controlling device: $e');
       return false;
     }
   }
@@ -249,7 +250,104 @@ class FirebaseService {
         'currentDuration': duration,
       });
     } catch (e) {
-      debugPrint('Error updating duration: $e');
+      debugPrint('❌ Error updating duration: $e');
+    }
+  }
+
+  // ==================== MODE CONTROL ====================
+
+  /// Set device mode (manual/auto)
+  Future<bool> setDeviceMode(String deviceId, String mode) async {
+    try {
+      await _db.child('devices/$deviceId').update({
+        'mode': mode, // "manual" or "auto"
+        'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+      });
+      debugPrint('✅ Device mode set: $deviceId → $mode');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error setting mode: $e');
+      return false;
+    }
+  }
+
+  /// Get current device mode
+  Future<String> getDeviceMode(String deviceId) async {
+    try {
+      final snapshot = await _db.child('devices/$deviceId/mode').get();
+      if (snapshot.exists) {
+        return snapshot.value as String;
+      }
+      return 'auto'; // Default to auto
+    } catch (e) {
+      debugPrint('❌ Error getting mode: $e');
+      return 'auto';
+    }
+  }
+
+  /// Check if device is in forced auto mode
+  Future<bool> isDeviceForcedAuto(String deviceId) async {
+    try {
+      final snapshot = await _db.child('devices/$deviceId/forcedAuto').get();
+      if (snapshot.exists) {
+        return snapshot.value as bool;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('❌ Error checking forced auto: $e');
+      return false;
+    }
+  }
+
+  /// Clear forced auto status (when user manually intervenes)
+  Future<void> clearForcedAuto(String deviceId) async {
+    try {
+      await _db.child('devices/$deviceId').update({
+        'forcedAuto': false,
+        'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+      });
+      debugPrint('✅ Forced auto cleared: $deviceId');
+    } catch (e) {
+      debugPrint('❌ Error clearing forced auto: $e');
+    }
+  }
+
+  /// Enhanced control with mode management
+  Future<bool> controlDeviceWithMode(
+    String deviceId,
+    bool turnOn, {
+    int? duration,
+    String? mode,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        'status': turnOn,
+        'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+      };
+
+      // Set mode if provided
+      if (mode != null) {
+        updates['mode'] = mode;
+      }
+
+      if (turnOn) {
+        updates['startTime'] = DateTime.now().millisecondsSinceEpoch;
+        if (duration != null) {
+          updates['currentDuration'] = duration * 60; // Convert to seconds
+        }
+      } else {
+        updates['currentDuration'] = 0;
+        updates['startTime'] = null;
+      }
+
+      await _db.child('devices/$deviceId').update(updates);
+
+      debugPrint(
+          '✅ Device controlled: $deviceId → ${turnOn ? "ON" : "OFF"} (mode: $mode)');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error controlling device: $e');
+      return false;
     }
   }
 
@@ -294,10 +392,10 @@ class FirebaseService {
     try {
       final ref = _db.child('schedules').push();
       await ref.set(schedule.toMap());
-      debugPrint('Schedule added: ${ref.key}');
+      debugPrint('✅ Schedule added: ${ref.key}');
       return ref.key;
     } catch (e) {
-      debugPrint('Error adding schedule: $e');
+      debugPrint('❌ Error adding schedule: $e');
       return null;
     }
   }
@@ -305,10 +403,10 @@ class FirebaseService {
   Future<bool> updateSchedule(ScheduleModel schedule) async {
     try {
       await _db.child('schedules/${schedule.id}').update(schedule.toMap());
-      debugPrint('Schedule updated: ${schedule.id}');
+      debugPrint('✅ Schedule updated: ${schedule.id}');
       return true;
     } catch (e) {
-      debugPrint('Error updating schedule: $e');
+      debugPrint('❌ Error updating schedule: $e');
       return false;
     }
   }
@@ -316,10 +414,10 @@ class FirebaseService {
   Future<bool> toggleSchedule(String scheduleId, bool enabled) async {
     try {
       await _db.child('schedules/$scheduleId').update({'enabled': enabled});
-      debugPrint('Schedule toggled: $scheduleId = $enabled');
+      debugPrint('✅ Schedule toggled: $scheduleId = $enabled');
       return true;
     } catch (e) {
-      debugPrint('Error toggling schedule: $e');
+      debugPrint('❌ Error toggling schedule: $e');
       return false;
     }
   }
@@ -327,10 +425,10 @@ class FirebaseService {
   Future<bool> deleteSchedule(String scheduleId) async {
     try {
       await _db.child('schedules/$scheduleId').remove();
-      debugPrint('Schedule deleted: $scheduleId');
+      debugPrint('✅ Schedule deleted: $scheduleId');
       return true;
     } catch (e) {
-      debugPrint('Error deleting schedule: $e');
+      debugPrint('❌ Error deleting schedule: $e');
       return false;
     }
   }
@@ -370,13 +468,13 @@ class FirebaseService {
         'lastWatered': now.millisecondsSinceEpoch,
       });
 
-      debugPrint('Watering event logged for zone: $zoneId');
+      debugPrint('✅ Watering event logged for zone: $zoneId');
     } catch (e) {
-      debugPrint('Error logging watering event: $e');
+      debugPrint('❌ Error logging watering event: $e');
     }
   }
 
-  // ==================== ✅ NEW: SENSORS ====================
+  // ==================== SENSORS ====================
 
   Stream<List<SensorModel>> getSensorsStream(String zoneId) {
     return _db
@@ -415,10 +513,10 @@ class FirebaseService {
     try {
       final ref = _db.child('sensors').push();
       await ref.set(sensor.toMap());
-      debugPrint('Sensor added: ${ref.key}');
+      debugPrint('✅ Sensor added: ${ref.key}');
       return ref.key;
     } catch (e) {
-      debugPrint('Error adding sensor: $e');
+      debugPrint('❌ Error adding sensor: $e');
       return null;
     }
   }
@@ -426,10 +524,10 @@ class FirebaseService {
   Future<bool> updateSensor(SensorModel sensor) async {
     try {
       await _db.child('sensors/${sensor.id}').update(sensor.toMap());
-      debugPrint('Sensor updated: ${sensor.id}');
+      debugPrint('✅ Sensor updated: ${sensor.id}');
       return true;
     } catch (e) {
-      debugPrint('Error updating sensor: $e');
+      debugPrint('❌ Error updating sensor: $e');
       return false;
     }
   }
@@ -447,15 +545,15 @@ class FirebaseService {
         await _db.child('sensor_readings/$sensorId/$dateKey').remove();
       }
 
-      debugPrint('Sensor deleted: $sensorId');
+      debugPrint('✅ Sensor deleted: $sensorId');
       return true;
     } catch (e) {
-      debugPrint('Error deleting sensor: $e');
+      debugPrint('❌ Error deleting sensor: $e');
       return false;
     }
   }
 
-  // ==================== ✅ NEW: SENSOR READINGS ====================
+  // ==================== SENSOR READINGS ====================
 
   Stream<List<SensorReadingModel>> getSensorReadingsStream(
     String sensorId,
@@ -515,13 +613,13 @@ class FirebaseService {
         'lastUpdated': reading.timestamp.millisecondsSinceEpoch,
       });
 
-      debugPrint(' Sensor reading added: ${reading.sensorId} at $dateKey');
+      debugPrint('✅ Sensor reading added: ${reading.sensorId} at $dateKey');
     } catch (e) {
-      debugPrint(' Error adding sensor reading: $e');
+      debugPrint('❌ Error adding sensor reading: $e');
     }
   }
 
-  // ==================== ✅ NEW: NOTIFICATIONS ====================
+  // ==================== NOTIFICATIONS ====================
 
   Stream<List<NotificationModel>> getNotificationsStream() {
     if (currentUserId == null) return Stream.value([]);
@@ -550,10 +648,10 @@ class FirebaseService {
     try {
       final ref = _db.child('notifications/$currentUserId').push();
       await ref.set(notification.toMap());
-      debugPrint('Notification added: ${ref.key}');
+      debugPrint('✅ Notification added: ${ref.key}');
       return ref.key;
     } catch (e) {
-      debugPrint('Error adding notification: $e');
+      debugPrint('❌ Error adding notification: $e');
       return null;
     }
   }
@@ -567,7 +665,7 @@ class FirebaseService {
           .update({'isRead': true});
       return true;
     } catch (e) {
-      debugPrint('Error marking notification as read: $e');
+      debugPrint('❌ Error marking notification as read: $e');
       return false;
     }
   }
@@ -579,7 +677,7 @@ class FirebaseService {
       await _db.child('notifications/$currentUserId/$notificationId').remove();
       return true;
     } catch (e) {
-      debugPrint('Error deleting notification: $e');
+      debugPrint('❌ Error deleting notification: $e');
       return false;
     }
   }
@@ -590,11 +688,11 @@ class FirebaseService {
     try {
       await _db.child('notifications/$currentUserId').remove();
     } catch (e) {
-      debugPrint('Error clearing notifications: $e');
+      debugPrint('❌ Error clearing notifications: $e');
     }
   }
 
-  // ==================== ✅ NEW: LEAK DETECTION ====================
+  // ==================== LEAK DETECTION ====================
 
   Stream<LeakDetectionModel?> getLeakDetectionStream(String zoneId) {
     return _db.child('leak_detection/$zoneId').onValue.map((event) {
@@ -624,10 +722,10 @@ class FirebaseService {
       await _db
           .child('leak_detection/${detection.zoneId}')
           .set(detection.toMap());
-      debugPrint('Leak detection updated: ${detection.zoneId}');
+      debugPrint('✅ Leak detection updated: ${detection.zoneId}');
       return true;
     } catch (e) {
-      debugPrint('Error updating leak detection: $e');
+      debugPrint('❌ Error updating leak detection: $e');
       return false;
     }
   }
@@ -637,13 +735,13 @@ class FirebaseService {
       await _db
           .child('leak_detection/$zoneId/alerts/${alert.id}')
           .set(alert.toMap());
-      debugPrint('Leak alert added: $zoneId');
+      debugPrint('✅ Leak alert added: $zoneId');
     } catch (e) {
-      debugPrint('Error adding leak alert: $e');
+      debugPrint('❌ Error adding leak alert: $e');
     }
   }
 
-  // ==================== ✅ SCHEDULE SKIP INFO (for Weather Auto-Skip) ====================
+  // ==================== SCHEDULE SKIP INFO (for Weather Auto-Skip) ====================
 
   Future<void> updateScheduleSkipInfo(
     String scheduleId,
@@ -651,9 +749,9 @@ class FirebaseService {
   ) async {
     try {
       await _db.child('schedule_skip_info/$scheduleId').set(skipInfo);
-      debugPrint('Schedule skip info updated: $scheduleId');
+      debugPrint('✅ Schedule skip info updated: $scheduleId');
     } catch (e) {
-      debugPrint('Error updating schedule skip info: $e');
+      debugPrint('❌ Error updating schedule skip info: $e');
     }
   }
 
@@ -665,7 +763,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting schedule skip info: $e');
+      debugPrint('❌ Error getting schedule skip info: $e');
       return null;
     }
   }
@@ -673,13 +771,13 @@ class FirebaseService {
   Future<void> clearScheduleSkipInfo(String scheduleId) async {
     try {
       await _db.child('schedule_skip_info/$scheduleId').remove();
-      debugPrint('Schedule skip info cleared: $scheduleId');
+      debugPrint('✅ Schedule skip info cleared: $scheduleId');
     } catch (e) {
-      debugPrint('Error clearing schedule skip info: $e');
+      debugPrint('❌ Error clearing schedule skip info: $e');
     }
   }
 
-  // ==================== ✅ AUTO WATERING (for Soil Moisture Auto) ====================
+  // ==================== AUTO WATERING (for Soil Moisture Auto) ====================
 
   Future<void> updateZoneAutoWatering(String zoneId, bool enabled) async {
     try {
@@ -687,9 +785,9 @@ class FirebaseService {
         'autoWateringEnabled': enabled,
         'autoWateringUpdatedAt': DateTime.now().millisecondsSinceEpoch,
       });
-      debugPrint('Zone auto watering updated: $zoneId = $enabled');
+      debugPrint('✅ Zone auto watering updated: $zoneId = $enabled');
     } catch (e) {
-      debugPrint('Error updating zone auto watering: $e');
+      debugPrint('❌ Error updating zone auto watering: $e');
     }
   }
 
@@ -702,12 +800,12 @@ class FirebaseService {
       }
       return false; // Default to disabled
     } catch (e) {
-      debugPrint('Error checking auto watering status: $e');
+      debugPrint('❌ Error checking auto watering status: $e');
       return false;
     }
   }
 
-  // ==================== ✅ PHASE 4: WATERING HISTORY ====================
+  // ==================== WATERING HISTORY (PHASE 4) ====================
 
   Stream<List<WateringHistoryModel>> getWateringHistoryStream({
     String? zoneId,
@@ -768,13 +866,13 @@ class FirebaseService {
       };
 
       await ref.set(data);
-      debugPrint(' Watering history logged: ${history.zoneName} ($historyId)');
+      debugPrint('✅ Watering history logged: ${history.zoneName} ($historyId)');
     } catch (e) {
-      debugPrint(' Error logging history: $e');
+      debugPrint('❌ Error logging history: $e');
     }
   }
 
-  // ==================== ✅ PHASE 4: PLANT LIBRARY ====================
+  // ==================== PLANT LIBRARY (PHASE 4) ====================
 
   Stream<List<PlantProfileModel>> getAllPlantProfilesStream() {
     return _db.child('plant_library').onValue.map((event) {
@@ -819,7 +917,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting plant profile: $e');
+      debugPrint('❌ Error getting plant profile: $e');
       return null;
     }
   }
@@ -827,13 +925,13 @@ class FirebaseService {
   Future<void> addPlantProfile(PlantProfileModel plant) async {
     try {
       await _db.child('plant_library/${plant.id}').set(plant.toMap());
-      debugPrint('Plant profile added: ${plant.name}');
+      debugPrint('✅ Plant profile added: ${plant.name}');
     } catch (e) {
-      debugPrint('Error adding plant profile: $e');
+      debugPrint('❌ Error adding plant profile: $e');
     }
   }
 
-  // ==================== ✅ PHASE 4: ZONE PROFILES ====================
+  // ==================== ZONE PROFILES (PHASE 4) ====================
 
   Future<ZoneProfileModel?> getZoneProfile(String zoneId) async {
     try {
@@ -845,7 +943,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error getting zone profile: $e');
+      debugPrint('❌ Error getting zone profile: $e');
       return null;
     }
   }
@@ -853,9 +951,9 @@ class FirebaseService {
   Future<void> saveZoneProfile(ZoneProfileModel profile) async {
     try {
       await _db.child('zone_profiles/${profile.zoneId}').set(profile.toMap());
-      debugPrint('Zone profile saved: ${profile.zoneId}');
+      debugPrint('✅ Zone profile saved: ${profile.zoneId}');
     } catch (e) {
-      debugPrint('Error saving zone profile: $e');
+      debugPrint('❌ Error saving zone profile: $e');
     }
   }
 }
