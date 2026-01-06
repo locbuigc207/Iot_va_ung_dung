@@ -5,9 +5,11 @@ class DeviceModel {
   final String type; // pump, valve, sensor
   final bool status; // on/off
   final DateTime lastUpdated;
-  final double? flowRate; // liters per minute
-  final int? currentDuration; // remaining duration in seconds
-  final DateTime? startTime; // when current watering started
+  final double? flowRate;
+  final int? currentDuration;
+  final DateTime? startTime;
+  final String? deviceMAC;
+  final String? uniqueId;
 
   DeviceModel({
     required this.id,
@@ -19,6 +21,8 @@ class DeviceModel {
     this.flowRate,
     this.currentDuration,
     this.startTime,
+    this.deviceMAC,
+    this.uniqueId,
   });
 
   // Convert to Map for Firebase
@@ -31,8 +35,10 @@ class DeviceModel {
       'status': status,
       'lastUpdated': lastUpdated.millisecondsSinceEpoch,
       'flowRate': flowRate,
-      'currentDuration': currentDuration,
-      'startTime': startTime?.millisecondsSinceEpoch,
+      if (currentDuration != null) 'currentDuration': currentDuration,
+      if (startTime != null) 'startTime': startTime!.millisecondsSinceEpoch,
+      if (deviceMAC != null) 'deviceMAC': deviceMAC,
+      if (uniqueId != null) 'uniqueId': uniqueId,
     };
   }
 
@@ -52,6 +58,8 @@ class DeviceModel {
       startTime: map['startTime'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['startTime'])
           : null,
+      deviceMAC: map['deviceMAC'],
+      uniqueId: map['uniqueId'],
     );
   }
 

@@ -52,8 +52,8 @@ class FirebaseService {
       final ref = _db.child('zones').push();
       final zoneWithId = zone.copyWith();
       await ref.set(zoneWithId.toMap());
-      await _createDevice(ref.key!, zone.name);
-      debugPrint('Zone added successfully: ${ref.key}');
+      debugPrint(
+          ' Zone added: ${ref.key} (waiting for ESP32 to register device)');
       return ref.key;
     } catch (e) {
       debugPrint('Error adding zone: $e');
@@ -127,26 +127,6 @@ class FirebaseService {
     }
   }
 
-  // ==================== DEVICES ====================
-
-  Future<void> _createDevice(String zoneId, String zoneName) async {
-    try {
-      final deviceRef = _db.child('devices').push();
-      final device = DeviceModel(
-        id: deviceRef.key!,
-        name: 'Pump - $zoneName',
-        zoneId: zoneId,
-        type: 'pump',
-        status: false,
-        lastUpdated: DateTime.now(),
-        flowRate: 5.0,
-      );
-      await deviceRef.set(device.toMap());
-    } catch (e) {
-      debugPrint('Error creating device: $e');
-    }
-  }
-
   Stream<DeviceModel?> getDeviceStream(String zoneId) {
     return _db
         .child('devices')
@@ -161,6 +141,79 @@ class FirebaseService {
       }
       return null;
     });
+  }
+
+  Future<void> linkDeviceToZone(String zoneId, String deviceId) async {
+    try {
+      await _db.child('zones/$zoneId').update({
+        'deviceId': deviceId,
+        'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+      });
+      debugPrint(' Device $deviceId linked to zone $zoneId');
+    } catch (e) {
+      debugPrint(' Error linking device to zone: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> toggleAutoWatering(String zoneId, bool enabled) async {
+    try {
+      await _db.child('zones/$zoneId').update({
+        'autoWateringEnabled': enabled,
+        'autoWateringUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      debugPrint(
+          ' Auto watering ${enabled ? "enabled" : "disabled"} for zone $zoneId');
+    } catch (e) {
+      debugPrint(' Error toggling auto watering: $e');
+      rethrow;
+    }
+  }
+
+  Stream<List<DeviceModel>> getDevicesByUniqueIdPattern(String pattern) {
+    return _db
+        .child('devices')
+        .orderByChild('uniqueId')
+        .startAt(pattern)
+        .endAt('$pattern\uf8ff')
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) return <DeviceModel>[];
+
+      final devicesMap =
+          Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+      return devicesMap.entries
+          .map((entry) => DeviceModel.fromMap(
+                Map<dynamic, dynamic>.from(entry.value),
+                entry.key,
+              ))
+          .toList();
+    });
+  }
+
+  Future<DeviceModel?> getDeviceByMAC(String mac) async {
+    try {
+      final snapshot = await _db
+          .child('devices')
+          .orderByChild('deviceMAC')
+          .equalTo(mac)
+          .once();
+
+      if (snapshot.snapshot.value == null) return null;
+
+      final devicesMap =
+          Map<dynamic, dynamic>.from(snapshot.snapshot.value as Map);
+      if (devicesMap.isEmpty) return null;
+
+      final entry = devicesMap.entries.first;
+      return DeviceModel.fromMap(
+        Map<dynamic, dynamic>.from(entry.value),
+        entry.key,
+      );
+    } catch (e) {
+      debugPrint(' Error getting device by MAC: $e');
+      return null;
+    }
   }
 
   Future<bool> controlDevice(String deviceId, bool turnOn,
@@ -446,22 +499,25 @@ class FirebaseService {
 
   Future<void> addSensorReading(SensorReadingModel reading) async {
     try {
-      final dateKey =
-          '${reading.timestamp.year}-${reading.timestamp.month.toString().padLeft(2, '0')}-${reading.timestamp.day.toString().padLeft(2, '0')}';
+      final dateKey = '${reading.timestamp.year}'
+          '-${reading.timestamp.month.toString().padLeft(2, '0')}'
+          '-${reading.timestamp.day.toString().padLeft(2, '0')}';
 
-      final ref = _db.child(
-          'sensor_readings/${reading.sensorId}/$dateKey/${reading.timestamp.millisecondsSinceEpoch}');
+      final timestampKey = reading.timestamp.millisecondsSinceEpoch.toString();
+
+      final ref = _db
+          .child('sensor_readings/${reading.sensorId}/$dateKey/$timestampKey');
+
       await ref.set(reading.toMap());
 
-      // Update sensor current value
       await _db.child('sensors/${reading.sensorId}').update({
         'currentValue': reading.value,
         'lastUpdated': reading.timestamp.millisecondsSinceEpoch,
       });
 
-      debugPrint('Sensor reading added: ${reading.sensorId}');
+      debugPrint(' Sensor reading added: ${reading.sensorId} at $dateKey');
     } catch (e) {
-      debugPrint('Error adding sensor reading: $e');
+      debugPrint(' Error adding sensor reading: $e');
     }
   }
 
@@ -694,11 +750,27 @@ class FirebaseService {
 
   Future<void> logWateringHistory(WateringHistoryModel history) async {
     try {
-      final ref = _db.child('watering_history').push();
-      await ref.set(history.toMap());
-      debugPrint('Watering history logged: ${history.zoneName}');
+      final historyId =
+          '${history.startTime.millisecondsSinceEpoch ~/ 1000}_${history.zoneId}';
+
+      final ref = _db.child('watering_history/$historyId');
+
+      final data = {
+        'zoneId': history.zoneId,
+        'zoneName': history.zoneName,
+        'startTime': history.startTime.millisecondsSinceEpoch,
+        'endTime': history.endTime.millisecondsSinceEpoch,
+        'duration': history.duration,
+        'waterUsed': history.waterUsed,
+        'source': history.source,
+        'completed': history.completed,
+        if (history.notes != null) 'notes': history.notes,
+      };
+
+      await ref.set(data);
+      debugPrint(' Watering history logged: ${history.zoneName} ($historyId)');
     } catch (e) {
-      debugPrint('Error logging history: $e');
+      debugPrint(' Error logging history: $e');
     }
   }
 

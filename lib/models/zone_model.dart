@@ -10,6 +10,8 @@ class ZoneModel {
   final String plantType; // vegetables, grass, flowers, trees
   final DateTime createdAt;
   final DateTime? lastWatered;
+  final bool autoWateringEnabled;
+  final DateTime? autoWateringUpdatedAt;
 
   ZoneModel({
     required this.id,
@@ -23,6 +25,8 @@ class ZoneModel {
     this.plantType = 'vegetables',
     required this.createdAt,
     this.lastWatered,
+    this.autoWateringEnabled = false,
+    this.autoWateringUpdatedAt,
   });
 
   // Convert to Map for Firebase
@@ -38,11 +42,14 @@ class ZoneModel {
       'sunExposure': sunExposure,
       'plantType': plantType,
       'createdAt': createdAt.millisecondsSinceEpoch,
-      'lastWatered': lastWatered?.millisecondsSinceEpoch,
+      if (lastWatered != null)
+        'lastWatered': lastWatered!.millisecondsSinceEpoch,
+      'autoWateringEnabled': autoWateringEnabled,
+      if (autoWateringUpdatedAt != null)
+        'autoWateringUpdatedAt': autoWateringUpdatedAt!.millisecondsSinceEpoch,
     };
   }
 
-  // Create from Firebase Map
   factory ZoneModel.fromMap(Map<dynamic, dynamic> map, String id) {
     return ZoneModel(
       id: id,
@@ -60,10 +67,13 @@ class ZoneModel {
       lastWatered: map['lastWatered'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['lastWatered'])
           : null,
+      autoWateringEnabled: map['autoWateringEnabled'] ?? false,
+      autoWateringUpdatedAt: map['autoWateringUpdatedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['autoWateringUpdatedAt'])
+          : null,
     );
   }
 
-  // Copy with method for updates
   ZoneModel copyWith({
     String? name,
     String? description,
@@ -72,6 +82,7 @@ class ZoneModel {
     String? sunExposure,
     String? plantType,
     DateTime? lastWatered,
+    bool? autoWateringEnabled,
   }) {
     return ZoneModel(
       id: id,
@@ -85,6 +96,9 @@ class ZoneModel {
       plantType: plantType ?? this.plantType,
       createdAt: createdAt,
       lastWatered: lastWatered ?? this.lastWatered,
+      autoWateringEnabled: autoWateringEnabled ?? this.autoWateringEnabled,
+      autoWateringUpdatedAt:
+          autoWateringEnabled != null ? DateTime.now() : autoWateringUpdatedAt,
     );
   }
 
@@ -104,7 +118,6 @@ class ZoneModel {
     }
   }
 
-  // Get soil type display name
   String getSoilTypeDisplay() {
     switch (soilType) {
       case 'clay':
@@ -118,7 +131,6 @@ class ZoneModel {
     }
   }
 
-  // Get sun exposure display name
   String getSunExposureDisplay() {
     switch (sunExposure) {
       case 'full':

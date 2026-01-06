@@ -11,6 +11,7 @@ class SensorModel {
   final DateTime lastUpdated;
   final bool isActive;
   final bool alertEnabled;
+  final String? deviceId;
 
   SensorModel({
     required this.id,
@@ -25,6 +26,7 @@ class SensorModel {
     required this.lastUpdated,
     this.isActive = true,
     this.alertEnabled = true,
+    this.deviceId,
   });
 
   // Convert to Map for Firebase
@@ -42,6 +44,7 @@ class SensorModel {
       'lastUpdated': lastUpdated.millisecondsSinceEpoch,
       'isActive': isActive,
       'alertEnabled': alertEnabled,
+      if (deviceId != null) 'deviceId': deviceId,
     };
   }
 
@@ -65,6 +68,7 @@ class SensorModel {
       ),
       isActive: map['isActive'] ?? true,
       alertEnabled: map['alertEnabled'] ?? true,
+      deviceId: map['deviceId'],
     );
   }
 
@@ -207,15 +211,15 @@ extension SensorTypeExtension on SensorType {
   double get defaultMin {
     switch (this) {
       case SensorType.soilMoisture:
-        return 20.0;
+        return 30.0;
       case SensorType.temperature:
         return 15.0;
       case SensorType.light:
-        return 200.0;
+        return 20.0;
       case SensorType.flow:
-        return 0.0;
+        return 3.0;
       case SensorType.humidity:
-        return 30.0;
+        return 40.0;
     }
   }
 
@@ -226,7 +230,7 @@ extension SensorTypeExtension on SensorType {
       case SensorType.temperature:
         return 35.0;
       case SensorType.light:
-        return 10000.0;
+        return 800.0;
       case SensorType.flow:
         return 20.0;
       case SensorType.humidity:

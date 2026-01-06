@@ -9,6 +9,7 @@ import '../services/firebase_service.dart';
 import '../widgets/control_button.dart';
 import '../widgets/zone_card.dart';
 import 'add_zone_page.dart';
+import 'device_monitor_page.dart';
 import 'leak_detection_page.dart';
 import 'notifications_page.dart';
 import 'plant_library_page.dart';
@@ -396,6 +397,18 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Thời tiết',
           ),
           IconButton(
+            icon: const Icon(Icons.developer_mode, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DeviceMonitorPage(),
+                ),
+              );
+            },
+            tooltip: 'Device Monitor',
+          ),
+          IconButton(
             icon: Badge(
               isLabelVisible: _unreadNotifications > 0,
               label: Text('$_unreadNotifications'),
@@ -653,7 +666,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Quick Actions
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: const Text(

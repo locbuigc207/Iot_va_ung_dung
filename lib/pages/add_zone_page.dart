@@ -60,32 +60,23 @@ class _AddZonePageState extends State<AddZonePage> {
         throw Exception('User not logged in');
       }
 
-      // Generate a temporary device ID
-      final deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
-
       final zone = ZoneModel(
-        id: '', // Will be set by Firebase
+        id: '',
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         userId: userId,
-        deviceId: deviceId,
+        deviceId: '',
         soilType: _selectedSoilType,
         sunExposure: _selectedSunExposure,
         plantType: _selectedPlantType,
         createdAt: DateTime.now(),
+        autoWateringEnabled: false,
       );
 
       final zoneId = await _firebaseService.addZone(zone);
 
       if (zoneId != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã tạo khu vực thành công'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pop(context);
+        _showPairingInstructions(zoneId);
       } else {
         throw Exception('Failed to create zone');
       }
@@ -102,6 +93,57 @@ class _AddZonePageState extends State<AddZonePage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showPairingInstructions(String zoneId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          '✅ Khu vực đã tạo!',
+          style: TextStyle(fontFamily: 'SpaceGrotesk'),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Bước tiếp theo:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'SpaceGrotesk',
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '1. Bật nguồn thiết bị ESP32\n'
+              '2. ESP32 sẽ tự động kết nối WiFi\n'
+              '3. Thiết bị sẽ tự động đăng ký với khu vực này\n'
+              '4. Chờ 10-30 giây để hoàn tất',
+              style: TextStyle(fontFamily: 'SpaceGrotesk'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to zones list
+            },
+            child: const Text(
+              'Đã hiểu',
+              style: TextStyle(
+                color: Color(0xFF00C1C4),
+                fontFamily: 'SpaceGrotesk',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
