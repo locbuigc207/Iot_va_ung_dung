@@ -8,7 +8,7 @@ import 'pages/home_page.dart';
 import 'services/auto_weather_skip_service.dart';
 import 'services/leak_detection_service.dart';
 import 'services/notification_service.dart';
-import 'services/plant_library_service.dart'; // ✅ Đã tích hợp
+import 'services/plant_library_service.dart';
 import 'services/soil_moisture_auto_service.dart';
 import 'services/weather_service.dart';
 import 'welcome_page.dart';
@@ -42,12 +42,18 @@ void main() async {
     firebaseInitialized = true;
     debugPrint('✅ Firebase initialized successfully');
 
-    // ✅ CRITICAL FIX: Initialize Plant Library on app startup
+    // ✅ CRITICAL FIX: Initialize Plant Library with timeout
     try {
-      await PlantLibraryService().initializeDefaultLibrary();
+      await PlantLibraryService().initializeDefaultLibrary().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('⚠️ Plant library init timeout - continuing anyway');
+        },
+      );
       debugPrint('✅ Plant library initialized');
     } catch (e) {
       debugPrint('⚠️ Plant library initialization error: $e');
+      // App vẫn chạy được dù không có plant library
     }
 
     // Initialize Notification Service

@@ -10,35 +10,52 @@ class PlantLibraryService {
 
   final FirebaseService _firebaseService = FirebaseService();
 
-  // ✅ FIX 1: Cache để tránh load lại nhiều lần
+  // Cache và Completer để handle concurrent requests
   List<PlantProfileModel>? _cachedPlants;
   bool _isInitializing = false;
+  Future<void>? _initializationFuture;
 
-  // ✅ FIX 2: Improved initialization with retry logic
+  // Improved initialization with Completer pattern
   Future<void> initializeDefaultLibrary({bool forceReinit = false}) async {
-    if (_isInitializing) {
-      debugPrint('⏳ Already initializing plant library...');
+    // Nếu đang init, đợi nó xong thay vì return
+    if (_isInitializing && _initializationFuture != null) {
+      debugPrint('⏳ Waiting for ongoing initialization...');
+      await _initializationFuture;
       return;
     }
 
     _isInitializing = true;
+    _initializationFuture = _performInitialization(forceReinit);
 
+    try {
+      await _initializationFuture;
+    } finally {
+      _isInitializing = false;
+      _initializationFuture = null;
+    }
+  }
+
+  Future<void> _performInitialization(bool forceReinit) async {
     try {
       debugPrint('🌱 Initializing plant library...');
 
       // Check if library already exists
       if (!forceReinit) {
-        final existing = await getAllPlants().first.timeout(
-              const Duration(seconds: 10),
-              onTimeout: () => <PlantProfileModel>[],
-            );
+        try {
+          final existing = await getAllPlants().first.timeout(
+                const Duration(seconds: 5),
+                onTimeout: () => <PlantProfileModel>[],
+              );
 
-        if (existing.isNotEmpty) {
-          debugPrint(
-              '✅ Plant library already initialized (${existing.length} plants)');
-          _cachedPlants = existing;
-          _isInitializing = false;
-          return;
+          if (existing.isNotEmpty) {
+            debugPrint(
+                '✅ Plant library already exists (${existing.length} plants)');
+            _cachedPlants = existing;
+            return;
+          }
+        } catch (e) {
+          debugPrint('⚠️ Error checking existing plants: $e');
+          // Continue to initialize
         }
       }
 
@@ -51,26 +68,32 @@ class PlantLibraryService {
         try {
           await _firebaseService.addPlantProfile(plant);
           successCount++;
-          debugPrint('✅ Added: ${plant.name}');
+          if (successCount <= 5) {
+            debugPrint('✅ Added: ${plant.name}');
+          }
         } catch (e) {
           debugPrint('❌ Failed to add ${plant.name}: $e');
         }
       }
 
       debugPrint(
-          '✅ Plant library initialized: $successCount/${defaultPlants.length} plants added');
+          '✅ Plant library initialized: $successCount/${defaultPlants.length} plants');
 
       // Reload cache
-      _cachedPlants = await getAllPlants().first;
+      try {
+        _cachedPlants = await getAllPlants().first.timeout(
+              const Duration(seconds: 5),
+            );
+      } catch (e) {
+        debugPrint('⚠️ Error reloading cache: $e');
+      }
     } catch (e) {
       debugPrint('❌ Error initializing plant library: $e');
-      rethrow;
-    } finally {
-      _isInitializing = false;
+      // Don't rethrow - app should still work without plant library
     }
   }
 
-  // ✅ FIX 3: Better error handling in getAllPlants
+  // Better error handling và fallback
   Stream<List<PlantProfileModel>> getAllPlants() {
     return _firebaseService.getAllPlantProfilesStream().handleError((error) {
       debugPrint('❌ Error loading plants: $error');
@@ -79,6 +102,11 @@ class PlantLibraryService {
         return Stream.value(_cachedPlants!);
       }
       return Stream.value(<PlantProfileModel>[]);
+    }).map((plants) {
+      if (plants.isNotEmpty) {
+        _cachedPlants = plants; // Update cache
+      }
+      return plants;
     });
   }
 
@@ -91,7 +119,8 @@ class PlantLibraryService {
   Future<List<PlantProfileModel>> searchPlants(String query) async {
     try {
       final allPlants = await getAllPlants().first.timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 5),
+            onTimeout: () => _cachedPlants ?? [],
           );
 
       final lowerQuery = query.toLowerCase();
@@ -115,30 +144,23 @@ class PlantLibraryService {
   }) async {
     try {
       final allPlants = await getAllPlants().first.timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 5),
+            onTimeout: () => _cachedPlants ?? [],
           );
 
       return allPlants.where((plant) {
-        // Check soil compatibility
         final soilMatch = plant.soilTypes.contains(soilType);
-
-        // Check sun exposure
         final sunMatch = plant.sunExposure == sunExposure;
-
-        // Check temperature range
         final tempMatch = avgTemperature >= plant.minTemperature &&
             avgTemperature <= plant.maxTemperature;
-
-        // Check humidity range
         final humidityMatch = avgHumidity >= plant.minHumidity &&
             avgHumidity <= plant.maxHumidity;
 
-        // Return if at least 2 out of 4 conditions match
         final matches = [soilMatch, sunMatch, tempMatch, humidityMatch]
             .where((m) => m)
             .length;
 
-        return matches >= 2; // ✅ FIX 4: Giảm từ 3 xuống 2 để flexible hơn
+        return matches >= 2;
       }).toList();
     } catch (e) {
       debugPrint('❌ Error getting recommended plants: $e');
@@ -198,7 +220,6 @@ class PlantLibraryService {
         };
       }
 
-      // Calculate adjusted duration
       final baseDuration = plantProfile.wateringDuration;
       final adjustedDuration =
           zoneProfile.calculateAdjustedDuration(baseDuration);
@@ -225,10 +246,10 @@ class PlantLibraryService {
     }
   }
 
-  // ✅ FIX 5: EXPANDED DEFAULT LIBRARY - 30+ plants
+  // Full default plants library - 30+ plants
   List<PlantProfileModel> _getDefaultPlants() {
     return [
-      // ============ RAU CỦ (VEGETABLES) - 10 cây ============
+      // VEGETABLES
       PlantProfileModel(
         id: 'tomato',
         name: 'Cà chua',
@@ -258,21 +279,21 @@ class PlantLibraryService {
         name: 'Rau xà lách',
         scientificName: 'Lactuca sativa',
         category: 'vegetables',
-        description: 'Rau xà lách mọc nhanh, thích hợp trồng quanh năm',
+        description: 'Rau xà lách phát triển nhanh, thích hợp trồng quanh năm',
         imageUrl: '',
         wateringFrequency: 1,
         wateringDuration: 10,
-        optimalSoilMoisture: 65,
+        optimalSoilMoisture: 70,
         sunExposure: 'partial',
-        soilTypes: ['loam'],
-        minTemperature: 15,
+        soilTypes: ['loam', 'clay'],
+        minTemperature: 10,
         maxTemperature: 25,
         minHumidity: 60,
-        maxHumidity: 80,
+        maxHumidity: 85,
         careTips: [
-          'Tưới đều đặn để lá giòn và ngọt',
-          'Tránh nắng gắt buổi trưa',
-          'Thu hoạch sớm để lá non',
+          'Tưới thường xuyên để lá giòn và ngọt',
+          'Trồng ở nơi bóng râm nhẹ',
+          'Thu hoạch sớm để tránh đắng',
         ],
         season: 'all',
       ),
@@ -281,76 +302,53 @@ class PlantLibraryService {
         name: 'Dưa chuột',
         scientificName: 'Cucumis sativus',
         category: 'vegetables',
-        description: 'Dưa leo dễ trồng, sinh trưởng nhanh, cần nhiều nước',
+        description: 'Dưa chuột cần nhiều nước, phát triển mạnh trong mùa hè',
         imageUrl: '',
-        wateringFrequency: 1,
+        wateringFrequency: 2,
         wateringDuration: 20,
-        optimalSoilMoisture: 70,
+        optimalSoilMoisture: 65,
         sunExposure: 'full',
         soilTypes: ['loam', 'sand'],
         minTemperature: 20,
         maxTemperature: 35,
-        minHumidity: 60,
+        minHumidity: 55,
         maxHumidity: 85,
         careTips: [
-          'Cần giàn leo để quả phát triển tốt',
-          'Tưới thường xuyên nhưng không úng',
-          'Thu hoạch khi quả còn xanh non',
+          'Tưới nhiều nước, đặc biệt khi đang ra quả',
+          'Dựng giàn cho cây leo',
+          'Bón phân NPK 2 tuần/lần',
         ],
         season: 'summer',
       ),
       PlantProfileModel(
-        id: 'chili',
+        id: 'pepper',
         name: 'Ớt',
         scientificName: 'Capsicum annuum',
         category: 'vegetables',
-        description: 'Cây ớt bền bỉ, dễ trồng, cho quả quanh năm',
+        description: 'Cây ớt dễ trồng, chịu hạn tốt',
         imageUrl: '',
-        wateringFrequency: 2,
+        wateringFrequency: 3,
         wateringDuration: 12,
         optimalSoilMoisture: 55,
         sunExposure: 'full',
         soilTypes: ['loam', 'sand'],
-        minTemperature: 20,
+        minTemperature: 18,
         maxTemperature: 35,
-        minHumidity: 50,
+        minHumidity: 45,
         maxHumidity: 75,
         careTips: [
-          'Cần nhiều ánh sáng để quả phát triển',
-          'Tránh úng nước gây thối rễ',
-          'Hái quả già để kích thích ra hoa mới',
+          'Không tưới quá nhiều nước',
+          'Cần nhiều ánh sáng để quả cay',
+          'Bón phân lân kali khi ra hoa',
         ],
-        season: 'all',
-      ),
-      PlantProfileModel(
-        id: 'spinach',
-        name: 'Rau bina',
-        scientificName: 'Spinacia oleracea',
-        category: 'vegetables',
-        description: 'Rau bina giàu dinh dưỡng, mọc nhanh trong thời tiết mát',
-        imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 10,
-        optimalSoilMoisture: 65,
-        sunExposure: 'partial',
-        soilTypes: ['loam'],
-        minTemperature: 10,
-        maxTemperature: 25,
-        minHumidity: 60,
-        maxHumidity: 80,
-        careTips: [
-          'Trồng vào mùa thu đông cho chất lượng tốt',
-          'Thu hoạch lá ngoài trước',
-          'Bón phân đạm để lá xanh đậm',
-        ],
-        season: 'fall',
+        season: 'spring',
       ),
       PlantProfileModel(
         id: 'carrot',
         name: 'Cà rốt',
         scientificName: 'Daucus carota',
         category: 'vegetables',
-        description: 'Củ cà rốt ngọt, cần đất tơi xốp để rễ phát triển',
+        description: 'Cà rốt cần đất tơi xốp, thoát nước tốt',
         imageUrl: '',
         wateringFrequency: 2,
         wateringDuration: 15,
@@ -359,227 +357,111 @@ class PlantLibraryService {
         soilTypes: ['sand', 'loam'],
         minTemperature: 15,
         maxTemperature: 25,
-        minHumidity: 55,
-        maxHumidity: 75,
-        careTips: [
-          'Đất phải tơi xốp sâu ít nhất 30cm',
-          'Tưới đều để củ không bị nứt',
-          'Thu hoạch sau 70-80 ngày',
-        ],
-        season: 'spring',
-      ),
-      PlantProfileModel(
-        id: 'eggplant',
-        name: 'Cà tím',
-        scientificName: 'Solanum melongena',
-        category: 'vegetables',
-        description: 'Cà tím dễ trồng, cho nhiều quả, thích khí hậu ấm',
-        imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 18,
-        optimalSoilMoisture: 62,
-        sunExposure: 'full',
-        soilTypes: ['loam'],
-        minTemperature: 20,
-        maxTemperature: 32,
-        minHumidity: 55,
-        maxHumidity: 80,
-        careTips: [
-          'Cần nhiều ánh sáng để quả phát triển',
-          'Tỉa bớt quả nhỏ để quả to hơn',
-          'Phòng sâu đục quả',
-        ],
-        season: 'summer',
-      ),
-      // ... Các cây khác giữ nguyên theo danh sách của bạn
-      PlantProfileModel(
-        id: 'cabbage',
-        name: 'Bắp cải',
-        scientificName: 'Brassica oleracea',
-        category: 'vegetables',
-        description: 'Bắp cải giòn ngọt, thích trồng vào mùa mát',
-        imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 15,
-        optimalSoilMoisture: 65,
-        sunExposure: 'full',
-        soilTypes: ['loam', 'clay'],
-        minTemperature: 12,
-        maxTemperature: 24,
-        minHumidity: 60,
-        maxHumidity: 85,
-        careTips: [
-          'Bón phân đều đặn để bắp to',
-          'Phòng sâu xanh',
-          'Thu hoạch khi bắp chắc',
-        ],
-        season: 'fall',
-      ),
-      PlantProfileModel(
-        id: 'bean',
-        name: 'Đậu đũa',
-        scientificName: 'Vigna unguiculata',
-        category: 'vegetables',
-        description: 'Đậu đũa leo giàn, cho nhiều quả, dễ chăm sóc',
-        imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 15,
-        optimalSoilMoisture: 58,
-        sunExposure: 'full',
-        soilTypes: ['loam', 'sand'],
-        minTemperature: 18,
-        maxTemperature: 35,
         minHumidity: 50,
         maxHumidity: 75,
         careTips: [
-          'Dựng giàn cao 1.5-2m',
-          'Hái quả non thường xuyên',
-          'Bón phân lân kali',
+          'Làm đất sâu và tơi xốp',
+          'Tưới đều, tránh đất bị khô nứt',
+          'Tỉa thưa khi cây cao 5cm',
         ],
-        season: 'summer',
-      ),
-      PlantProfileModel(
-        id: 'kale',
-        name: 'Cải xoăn Kale',
-        scientificName: 'Brassica oleracea var. sabellica',
-        category: 'vegetables',
-        description: 'Siêu thực phẩm giàu dinh dưỡng, dễ trồng',
-        imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 12,
-        optimalSoilMoisture: 63,
-        sunExposure: 'full',
-        soilTypes: ['loam'],
-        minTemperature: 10,
-        maxTemperature: 25,
-        minHumidity: 55,
-        maxHumidity: 80,
-        careTips: [
-          'Thu hoạch lá ngoài, để thân tiếp tục ra lá',
-          'Chịu lạnh tốt',
-          'Bón phân hữu cơ thường xuyên',
-        ],
-        season: 'all',
+        season: 'autumn',
       ),
 
-      // ============ CỎ (GRASS) - 5 loại ============
+      // HERBS
       PlantProfileModel(
-        id: 'bermuda_grass',
-        name: 'Cỏ Bermuda',
-        scientificName: 'Cynodon dactylon',
-        category: 'grass',
-        description: 'Cỏ chịu hạn tốt, phù hợp cho sân vườn',
+        id: 'basil',
+        name: 'Húng quế',
+        scientificName: 'Ocimum basilicum',
+        category: 'herbs',
+        description: 'Húng quế thơm, dễ trồng trong chậu',
         imageUrl: '',
-        wateringFrequency: 3,
-        wateringDuration: 20,
-        optimalSoilMoisture: 45,
-        sunExposure: 'full',
-        soilTypes: ['loam', 'sand', 'clay'],
-        minTemperature: 20,
-        maxTemperature: 35,
-        minHumidity: 30,
-        maxHumidity: 70,
-        careTips: [
-          'Tưới sâu nhưng không thường xuyên',
-          'Cắt cỏ thường xuyên để dày đặc',
-          'Bón phân 4 lần/năm',
-        ],
-        season: 'summer',
-      ),
-      PlantProfileModel(
-        id: 'zoysia_grass',
-        name: 'Cỏ Zoysia',
-        scientificName: 'Zoysia spp.',
-        category: 'grass',
-        description: 'Cỏ dày đặc, chịu được đạp đạp, ít bệnh',
-        imageUrl: '',
-        wateringFrequency: 4,
-        wateringDuration: 25,
-        optimalSoilMoisture: 42,
-        sunExposure: 'full',
-        soilTypes: ['loam', 'sand'],
-        minTemperature: 15,
-        maxTemperature: 32,
-        minHumidity: 35,
-        maxHumidity: 70,
-        careTips: [
-          'Tưới sâu 1-2 lần/tuần',
-          'Cắt ở độ cao 2-3cm',
-          'Thích đất có pH 6-7',
-        ],
-        season: 'all',
-      ),
-      PlantProfileModel(
-        id: 'buffalo_grass',
-        name: 'Cỏ Buffalo',
-        scientificName: 'Bouteloua dactyloides',
-        category: 'grass',
-        description: 'Cỏ bản địa Bắc Mỹ, tiết kiệm nước',
-        imageUrl: '',
-        wateringFrequency: 7,
-        wateringDuration: 30,
-        optimalSoilMoisture: 38,
-        sunExposure: 'full',
-        soilTypes: ['loam', 'clay'],
-        minTemperature: 18,
-        maxTemperature: 38,
-        minHumidity: 25,
-        maxHumidity: 65,
-        careTips: [
-          'Chịu hạn cực tốt',
-          'Cắt cao 5-8cm',
-          'Ít cần bón phân',
-        ],
-        season: 'summer',
-      ),
-      PlantProfileModel(
-        id: 'kentucky_bluegrass',
-        name: 'Cỏ Kentucky',
-        scientificName: 'Poa pratensis',
-        category: 'grass',
-        description: 'Cỏ xanh mướt, mềm mại, thích khí hậu mát',
-        imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 25,
-        optimalSoilMoisture: 52,
+        wateringFrequency: 1,
+        wateringDuration: 8,
+        optimalSoilMoisture: 65,
         sunExposure: 'full',
         soilTypes: ['loam'],
-        minTemperature: 10,
-        maxTemperature: 25,
-        minHumidity: 45,
-        maxHumidity: 75,
+        minTemperature: 20,
+        maxTemperature: 35,
+        minHumidity: 50,
+        maxHumidity: 80,
         careTips: [
-          'Cần nhiều nước hơn cỏ khác',
-          'Tự phục hồi tốt sau hư hại',
-          'Bón phân đạm định kỳ',
+          'Tưới vào buổi sáng',
+          'Hái ngọn thường xuyên để cây ra nhiều nhánh',
+          'Cắt bỏ hoa để lá ngon hơn',
         ],
         season: 'spring',
       ),
       PlantProfileModel(
-        id: 'fescue_grass',
-        name: 'Cỏ Fescue',
-        scientificName: 'Festuca spp.',
-        category: 'grass',
-        description: 'Cỏ chịu bóng tốt, thích hợp trồng dưới cây',
+        id: 'mint',
+        name: 'Bạc hà',
+        scientificName: 'Mentha',
+        category: 'herbs',
+        description: 'Bạc hà phát triển nhanh, dễ chăm sóc',
         imageUrl: '',
-        wateringFrequency: 3,
-        wateringDuration: 20,
-        optimalSoilMoisture: 48,
-        sunExposure: 'shade',
+        wateringFrequency: 1,
+        wateringDuration: 10,
+        optimalSoilMoisture: 70,
+        sunExposure: 'partial',
         soilTypes: ['loam', 'clay'],
-        minTemperature: 8,
+        minTemperature: 15,
+        maxTemperature: 30,
+        minHumidity: 60,
+        maxHumidity: 85,
+        careTips: [
+          'Giữ đất ẩm đều',
+          'Trồng riêng vì lan nhanh',
+          'Hái lá thường xuyên',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'coriander',
+        name: 'Rau mùi (Ngò)',
+        scientificName: 'Coriandrum sativum',
+        category: 'herbs',
+        description: 'Rau mùi thơm, dễ trồng quanh năm',
+        imageUrl: '',
+        wateringFrequency: 1,
+        wateringDuration: 8,
+        optimalSoilMoisture: 65,
+        sunExposure: 'partial',
+        soilTypes: ['loam'],
+        minTemperature: 18,
         maxTemperature: 28,
-        minHumidity: 40,
+        minHumidity: 55,
         maxHumidity: 80,
         careTips: [
-          'Chịu bóng râm tốt nhất',
-          'Cắt ở độ cao 6-8cm',
-          'Ít bị sâu bệnh',
+          'Trồng ở nơi thoáng mát',
+          'Tưới nhẹ mỗi ngày',
+          'Gieo hạt mới 3-4 tuần/lần',
         ],
-        season: 'fall',
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'lemongrass',
+        name: 'Sả',
+        scientificName: 'Cymbopogon',
+        category: 'herbs',
+        description: 'Cây sả dễ trồng, chịu hạn tốt',
+        imageUrl: '',
+        wateringFrequency: 3,
+        wateringDuration: 15,
+        optimalSoilMoisture: 55,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'sand'],
+        minTemperature: 20,
+        maxTemperature: 38,
+        minHumidity: 45,
+        maxHumidity: 75,
+        careTips: [
+          'Chịu hạn tốt, không cần tưới nhiều',
+          'Trồng nơi nhiều nắng',
+          'Tách khóm khi cây đông',
+        ],
+        season: 'all',
       ),
 
-      // ============ HOA (FLOWERS) - 8 loại ============
+      // FLOWERS
       PlantProfileModel(
         id: 'rose',
         name: 'Hoa hồng',
@@ -589,17 +471,17 @@ class PlantLibraryService {
         imageUrl: '',
         wateringFrequency: 2,
         wateringDuration: 15,
-        optimalSoilMoisture: 55,
+        optimalSoilMoisture: 60,
         sunExposure: 'full',
         soilTypes: ['loam'],
-        minTemperature: 18,
-        maxTemperature: 28,
+        minTemperature: 15,
+        maxTemperature: 30,
         minHumidity: 50,
-        maxHumidity: 70,
+        maxHumidity: 80,
         careTips: [
-          'Tưới vào gốc, tránh tưới lên lá',
-          'Cần ít nhất 6 giờ nắng/ngày',
-          'Cắt tỉa thường xuyên',
+          'Tưới gốc, tránh làm ướt lá',
+          'Bón phân định kỳ',
+          'Cắt tỉa hoa héo',
         ],
         season: 'spring',
       ),
@@ -608,21 +490,21 @@ class PlantLibraryService {
         name: 'Cúc vạn thọ',
         scientificName: 'Tagetes',
         category: 'flowers',
-        description: 'Hoa dễ trồng, chống sâu bệnh tự nhiên',
+        description: 'Hoa cúc vạn thọ dễ trồng, chống sâu bệnh tốt',
         imageUrl: '',
         wateringFrequency: 2,
         wateringDuration: 10,
-        optimalSoilMoisture: 50,
+        optimalSoilMoisture: 55,
         sunExposure: 'full',
         soilTypes: ['loam', 'sand'],
         minTemperature: 18,
-        maxTemperature: 32,
-        minHumidity: 40,
-        maxHumidity: 70,
+        maxTemperature: 35,
+        minHumidity: 45,
+        maxHumidity: 75,
         careTips: [
-          'Tưới vừa phải, tránh úng nước',
-          'Hái hoa tàn để kích thích ra hoa mới',
-          'Trồng quanh vườn rau để đuổi sâu',
+          'Chịu hạn và nóng tốt',
+          'Tỉa hoa héo để ra hoa liên tục',
+          'Trồng xen canh để đuổi sâu',
         ],
         season: 'all',
       ),
@@ -631,142 +513,424 @@ class PlantLibraryService {
         name: 'Hoa hướng dương',
         scientificName: 'Helianthus annuus',
         category: 'flowers',
-        description: 'Hoa lớn, rực rỡ, theo ánh mặt trời',
+        description: 'Hoa hướng dương cao lớn, cần nhiều ánh sáng',
         imageUrl: '',
         wateringFrequency: 2,
         wateringDuration: 20,
-        optimalSoilMoisture: 58,
+        optimalSoilMoisture: 60,
         sunExposure: 'full',
         soilTypes: ['loam', 'sand'],
-        minTemperature: 18,
+        minTemperature: 20,
         maxTemperature: 35,
-        minHumidity: 40,
+        minHumidity: 45,
         maxHumidity: 75,
         careTips: [
-          'Cần nhiều ánh sáng trực tiếp',
-          'Tưới nhiều khi trời nóng',
-          'Có thể cao đến 2-3m, cần chống đỡ',
+          'Cần rất nhiều ánh sáng mặt trời',
+          'Tưới nhiều nước khi đang phát triển',
+          'Dựng cọc chống đổ',
         ],
         season: 'summer',
       ),
       PlantProfileModel(
-        id: 'lavender',
-        name: 'Hoa oải hương',
-        scientificName: 'Lavandula',
+        id: 'orchid',
+        name: 'Lan hồ điệp',
+        scientificName: 'Phalaenopsis',
         category: 'flowers',
-        description: 'Hoa thơm, chịu hạn, làm dịu thần kinh',
+        description: 'Lan hồ điệp đẹp, cần độ ẩm cao',
         imageUrl: '',
-        wateringFrequency: 4,
+        wateringFrequency: 5,
+        wateringDuration: 5,
+        optimalSoilMoisture: 50,
+        sunExposure: 'shade',
+        soilTypes: ['special'],
+        minTemperature: 18,
+        maxTemperature: 28,
+        minHumidity: 60,
+        maxHumidity: 85,
+        careTips: [
+          'Tưới ít, phun sương nhiều',
+          'Trồng giá thể chuyên dụng',
+          'Đặt nơi thoáng mát',
+        ],
+        season: 'all',
+      ),
+
+      // FRUITS
+      PlantProfileModel(
+        id: 'strawberry',
+        name: 'Dâu tây',
+        scientificName: 'Fragaria × ananassa',
+        category: 'fruits',
+        description: 'Dâu tây ngọt, thích hợp trồng chậu',
+        imageUrl: '',
+        wateringFrequency: 1,
+        wateringDuration: 12,
+        optimalSoilMoisture: 65,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'sand'],
+        minTemperature: 15,
+        maxTemperature: 25,
+        minHumidity: 55,
+        maxHumidity: 80,
+        careTips: [
+          'Giữ đất ẩm đều',
+          'Phủ rơm để quả sạch',
+          'Bón phân khi ra hoa',
+        ],
+        season: 'autumn',
+      ),
+      PlantProfileModel(
+        id: 'lemon',
+        name: 'Chanh',
+        scientificName: 'Citrus limon',
+        category: 'fruits',
+        description: 'Cây chanh dễ trồng, chịu nóng tốt',
+        imageUrl: '',
+        wateringFrequency: 3,
+        wateringDuration: 20,
+        optimalSoilMoisture: 55,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'sand'],
+        minTemperature: 15,
+        maxTemperature: 35,
+        minHumidity: 50,
+        maxHumidity: 80,
+        careTips: [
+          'Tưới đều, tránh ngập úng',
+          'Bón phân hữu cơ định kỳ',
+          'Cắt tỉa cành khô',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'papaya',
+        name: 'Đu đủ',
+        scientificName: 'Carica papaya',
+        category: 'fruits',
+        description: 'Đu đủ phát triển nhanh, cho quả sớm',
+        imageUrl: '',
+        wateringFrequency: 2,
+        wateringDuration: 25,
+        optimalSoilMoisture: 60,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'sand'],
+        minTemperature: 22,
+        maxTemperature: 38,
+        minHumidity: 55,
+        maxHumidity: 85,
+        careTips: [
+          'Cần nhiều nước và nắng',
+          'Thoát nước tốt',
+          'Bón phân NPK thường xuyên',
+        ],
+        season: 'all',
+      ),
+
+      // SUCCULENTS
+      PlantProfileModel(
+        id: 'aloe_vera',
+        name: 'Nha đam',
+        scientificName: 'Aloe vera',
+        category: 'succulents',
+        description: 'Nha đam chịu hạn, dễ chăm sóc',
+        imageUrl: '',
+        wateringFrequency: 7,
         wateringDuration: 10,
         optimalSoilMoisture: 40,
         sunExposure: 'full',
         soilTypes: ['sand', 'loam'],
         minTemperature: 15,
-        maxTemperature: 32,
+        maxTemperature: 40,
         minHumidity: 30,
-        maxHumidity: 60,
+        maxHumidity: 65,
         careTips: [
-          'Chịu hạn tốt, tưới ít',
-          'Cần đất thoát nước tốt',
-          'Cắt tỉa sau khi hoa tàn',
+          'Tưới rất ít nước',
+          'Đất phải thoát nước tốt',
+          'Chịu nắng và hạn tốt',
         ],
-        season: 'spring',
+        season: 'all',
       ),
       PlantProfileModel(
-        id: 'petunia',
-        name: 'Hoa dạ yến thảo',
-        scientificName: 'Petunia',
-        category: 'flowers',
-        description: 'Hoa nhiều màu sắc, nở quanh năm',
+        id: 'cactus',
+        name: 'Xương rồng',
+        scientificName: 'Cactaceae',
+        category: 'succulents',
+        description: 'Xương rồng chịu hạn cực tốt',
         imageUrl: '',
-        wateringFrequency: 2,
-        wateringDuration: 12,
-        optimalSoilMoisture: 52,
+        wateringFrequency: 14,
+        wateringDuration: 5,
+        optimalSoilMoisture: 35,
         sunExposure: 'full',
+        soilTypes: ['sand'],
+        minTemperature: 10,
+        maxTemperature: 45,
+        minHumidity: 20,
+        maxHumidity: 60,
+        careTips: [
+          'Tưới rất ít, tránh úng nước',
+          'Cần đất cát, thoát nước cực tốt',
+          'Đặt nơi nhiều nắng',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'jade_plant',
+        name: 'Cây ngọc',
+        scientificName: 'Crassula ovata',
+        category: 'succulents',
+        description: 'Cây ngọc may mắn, dễ trồng trong nhà',
+        imageUrl: '',
+        wateringFrequency: 7,
+        wateringDuration: 8,
+        optimalSoilMoisture: 45,
+        sunExposure: 'partial',
+        soilTypes: ['sand', 'loam'],
+        minTemperature: 15,
+        maxTemperature: 30,
+        minHumidity: 35,
+        maxHumidity: 65,
+        careTips: [
+          'Tưới khi đất khô hoàn toàn',
+          'Ánh sáng gián tiếp',
+          'Chăm sóc tối thiểu',
+        ],
+        season: 'all',
+      ),
+
+      // INDOOR PLANTS
+      PlantProfileModel(
+        id: 'pothos',
+        name: 'Trầu bà',
+        scientificName: 'Epipremnum aureum',
+        category: 'indoor',
+        description: 'Trầu bà dễ sống, thanh lọc không khí tốt',
+        imageUrl: '',
+        wateringFrequency: 5,
+        wateringDuration: 10,
+        optimalSoilMoisture: 55,
+        sunExposure: 'shade',
+        soilTypes: ['loam'],
+        minTemperature: 18,
+        maxTemperature: 30,
+        minHumidity: 50,
+        maxHumidity: 80,
+        careTips: [
+          'Sống tốt trong bóng râm',
+          'Tưới khi đất khô 2-3cm',
+          'Cắt tỉa để cây đẹp hơn',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'snake_plant',
+        name: 'Lưỡi hổ',
+        scientificName: 'Sansevieria trifasciata',
+        category: 'indoor',
+        description: 'Lưỡi hổ cực kỳ dễ chăm, thanh lọc không khí',
+        imageUrl: '',
+        wateringFrequency: 14,
+        wateringDuration: 8,
+        optimalSoilMoisture: 40,
+        sunExposure: 'partial',
+        soilTypes: ['sand', 'loam'],
+        minTemperature: 15,
+        maxTemperature: 35,
+        minHumidity: 30,
+        maxHumidity: 70,
+        careTips: [
+          'Chịu hạn cực tốt',
+          'Sống được cả trong bóng tối',
+          'Tưới rất ít nước',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'peace_lily',
+        name: 'Lan ý',
+        scientificName: 'Spathiphyllum',
+        category: 'indoor',
+        description: 'Lan ý hoa trắng đẹp, thanh lọc không khí',
+        imageUrl: '',
+        wateringFrequency: 5,
+        wateringDuration: 12,
+        optimalSoilMoisture: 60,
+        sunExposure: 'shade',
+        soilTypes: ['loam'],
+        minTemperature: 18,
+        maxTemperature: 28,
+        minHumidity: 55,
+        maxHumidity: 85,
+        careTips: [
+          'Thích ẩm và bóng râm',
+          'Lá héo = cần nước',
+          'Phun sương lên lá',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'spider_plant',
+        name: 'Cây nhện',
+        scientificName: 'Chlorophytum comosum',
+        category: 'indoor',
+        description: 'Cây nhện dễ trồng, sinh sản nhanh',
+        imageUrl: '',
+        wateringFrequency: 4,
+        wateringDuration: 10,
+        optimalSoilMoisture: 55,
+        sunExposure: 'partial',
         soilTypes: ['loam'],
         minTemperature: 15,
         maxTemperature: 30,
         minHumidity: 45,
         maxHumidity: 75,
         careTips: [
-          'Bón phân thường xuyên',
-          'Hái hoa tàn để nở liên tục',
-          'Thích hợp trồng chậu treo',
-        ],
-        season: 'all',
-      ),
-      PlantProfileModel(
-        id: 'orchid',
-        name: 'Hoa lan',
-        scientificName: 'Orchidaceae',
-        category: 'flowers',
-        description: 'Hoa quý, cần chăm sóc đặc biệt',
-        imageUrl: '',
-        wateringFrequency: 4,
-        wateringDuration: 5,
-        optimalSoilMoisture: 45,
-        sunExposure: 'partial',
-        soilTypes: ['sand'],
-        minTemperature: 18,
-        maxTemperature: 28,
-        minHumidity: 60,
-        maxHumidity: 80,
-        careTips: [
-          'Tưới ít, để rễ khô giữa các lần',
-          'Cần ánh sáng gián tiếp',
-          'Trồng trong giá thể chuyên dụng',
+          'Ánh sáng gián tiếp',
+          'Tưới đều đặn',
+          'Sinh sản bằng cây con',
         ],
         season: 'all',
       ),
 
-      // ============ TREES - 1 loại ============
+      // TREES
       PlantProfileModel(
-        id: 'lemon',
-        name: 'Cây chanh',
-        scientificName: 'Citrus limon',
+        id: 'mango',
+        name: 'Xoài',
+        scientificName: 'Mangifera indica',
         category: 'trees',
-        description: 'Cây ăn quả dễ trồng, cho trái quanh năm',
+        description: 'Cây xoài cho trái ngọt, chịu hạn tốt',
         imageUrl: '',
-        wateringFrequency: 3,
-        wateringDuration: 25,
+        wateringFrequency: 7,
+        wateringDuration: 30,
         optimalSoilMoisture: 50,
         sunExposure: 'full',
         soilTypes: ['loam', 'sand'],
         minTemperature: 20,
-        maxTemperature: 35,
+        maxTemperature: 40,
         minHumidity: 50,
         maxHumidity: 80,
         careTips: [
-          'Tưới sâu 2-3 lần/tuần',
-          'Bón phân chuyên dụng cho cây có múi',
-          'Tỉa cành để thoáng đãng',
+          'Cây trưởng thành chịu hạn tốt',
+          'Cây con cần tưới thường xuyên',
+          'Bón phân khi ra hoa và đậu quả',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'guava',
+        name: 'Ổi',
+        scientificName: 'Psidium guajava',
+        category: 'trees',
+        description: 'Cây ổi dễ trồng, cho trái nhiều',
+        imageUrl: '',
+        wateringFrequency: 4,
+        wateringDuration: 25,
+        optimalSoilMoisture: 55,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'clay'],
+        minTemperature: 18,
+        maxTemperature: 38,
+        minHumidity: 50,
+        maxHumidity: 85,
+        careTips: [
+          'Tưới đều, tránh khô hạn',
+          'Cắt tỉa tạo tán',
+          'Bón phân hữu cơ định kỳ',
+        ],
+        season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'moringa',
+        name: 'Chùm ngây',
+        scientificName: 'Moringa oleifera',
+        category: 'trees',
+        description: 'Chùm ngây giàu dinh dưỡng, chịu hạn cực tốt',
+        imageUrl: '',
+        wateringFrequency: 7,
+        wateringDuration: 20,
+        optimalSoilMoisture: 45,
+        sunExposure: 'full',
+        soilTypes: ['sand', 'loam'],
+        minTemperature: 20,
+        maxTemperature: 42,
+        minHumidity: 40,
+        maxHumidity: 75,
+        careTips: [
+          'Chịu hạn và nóng cực tốt',
+          'Cắt tỉa thường xuyên để thu hoạch lá',
+          'Tưới ít, tránh úng nước',
         ],
         season: 'all',
       ),
 
-      // ============ SUCCULENTS - 1 loại ============
+      // VINES
       PlantProfileModel(
-        id: 'jade_plant',
-        name: 'Cây ngọc bích',
-        scientificName: 'Crassula ovata',
-        category: 'succulents',
-        description: 'Sen đá chịu hạn cực tốt, dễ chăm sóc',
+        id: 'grape',
+        name: 'Nho',
+        scientificName: 'Vitis vinifera',
+        category: 'vines',
+        description: 'Nho leo giàn, cần chăm sóc cẩn thận',
         imageUrl: '',
-        wateringFrequency: 7,
-        wateringDuration: 5,
-        optimalSoilMoisture: 30,
-        sunExposure: 'partial',
-        soilTypes: ['sand'],
-        minTemperature: 18,
-        maxTemperature: 30,
-        minHumidity: 20,
-        maxHumidity: 50,
+        wateringFrequency: 3,
+        wateringDuration: 20,
+        optimalSoilMoisture: 55,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'sand'],
+        minTemperature: 15,
+        maxTemperature: 32,
+        minHumidity: 50,
+        maxHumidity: 75,
         careTips: [
-          'Tưới ít, chỉ khi đất khô hoàn toàn',
-          'Tránh úng nước gây thối rễ',
-          'Cần ánh sáng gián tiếp',
+          'Dựng giàn cho cây leo',
+          'Tưới đều, không được úng',
+          'Cắt tỉa sau thu hoạch',
+        ],
+        season: 'spring',
+      ),
+      PlantProfileModel(
+        id: 'passion_fruit',
+        name: 'Chanh dây',
+        scientificName: 'Passiflora edulis',
+        category: 'vines',
+        description: 'Chanh dây leo nhanh, cho quả nhiều',
+        imageUrl: '',
+        wateringFrequency: 2,
+        wateringDuration: 18,
+        optimalSoilMoisture: 60,
+        sunExposure: 'full',
+        soilTypes: ['loam', 'sand'],
+        minTemperature: 20,
+        maxTemperature: 35,
+        minHumidity: 55,
+        maxHumidity: 85,
+        careTips: [
+          'Dựng giàn chắc chắn',
+          'Tưới nhiều nước khi ra hoa và quả',
+          'Bón phân lân kali',
         ],
         season: 'all',
+      ),
+      PlantProfileModel(
+        id: 'bitter_melon',
+        name: 'Khổ qua',
+        scientificName: 'Momordica charantia',
+        category: 'vines',
+        description: 'Khổ qua tốt cho sức khỏe, dễ trồng',
+        imageUrl: '',
+        wateringFrequency: 2,
+        wateringDuration: 15,
+        optimalSoilMoisture: 60,
+        sunExposure: 'full',
+        soilTypes: ['loam'],
+        minTemperature: 22,
+        maxTemperature: 35,
+        minHumidity: 55,
+        maxHumidity: 80,
+        careTips: [
+          'Dựng giàn hoặc lưới',
+          'Tưới đều đặn',
+          'Bón phân khi ra hoa',
+        ],
+        season: 'summer',
       ),
     ];
   }
